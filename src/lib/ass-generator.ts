@@ -49,7 +49,6 @@ export function generateASS(
 	style: CaptionStyle,
 	width: number,
 	height: number,
-	fontData?: Uint8Array,
 ): string {
 	// 1. Header
 	// 2. Styles
@@ -62,7 +61,7 @@ export function generateASS(
 		outlineColor: style.outlineColor,
 		shadowColor: style.shadowColor,
 	});
-	console.log('[ASS Generator] Font data available:', !!fontData, fontData ? `${fontData.byteLength} bytes` : 'null');
+
 
 	const primaryColor = toASSColor(style.textColor);
 	const outlineColor = toASSColor(style.outlineColor);

@@ -66,162 +66,119 @@ const api = {
 	async burnSubtitles(
 		videoFile: File,
 		assContent: string,
-		fontData?: Uint8Array,
 		onProgress?: (progress: number) => void,
 	): Promise<Blob> {
 		if (!ffmpeg) throw new Error('FFmpeg not loaded');
 
 		console.log('[BurnSubtitles] Starting subtitle burn process...');
-		console.log('[BurnSubtitles] Video file size:', videoFile.size, 'bytes');
-		console.log('[BurnSubtitles] Font data received:', !!fontData, fontData ? `${fontData.byteLength} bytes` : 'null');
-		console.log('[BurnSubtitles] ASS content length:', assContent.length, 'characters');
-		console.log('[BurnSubtitles] ASS content first 800 chars:', assContent.substring(0, 800));
 
 		const inputName = 'input.mp4';
 		const subName = 'subs.ass';
 		const outputName = 'output.mp4';
-		const fontsDir = '/fonts';
-		const fontsConf = '/tmp/fonts.conf';
+		const fontName = 'LiberationSans-Regular.ttf';
+
+		// Base URL assuming the files are in the public folder of the deployment
+		const baseURL = new URL('/', self.location.origin);
+		const fontURL = new URL(fontName, baseURL).href;
 
 		try {
-			// 1. Prepare Font Files
-			if (fontData) {
-				console.log('[BurnSubtitles] Writing font to virtual FS...');
-				try {
-					await ffmpeg.createDir(fontsDir);
-				} catch (e) {
-					// Ignore if exists
-				}
-				// Write the font file using a generic name or the specific extension
-				await ffmpeg.writeFile(`${fontsDir}/font.ttf`, fontData);
+			// 1. Setup virtual file system for fonts
+			console.log('[BurnSubtitles] Setting up virtual font environment...');
 
-				// 2. Generate fonts.conf for fontconfig
-				// This is crucial for libass to find the font in FFmpeg.wasm
-				const fontsConfContent = `<?xml version="1.0"?>
-<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
-<fontconfig>
-  <dir>${fontsDir}</dir>
-  <match target="pattern">
-    <test qual="any" name="family"><string>sans-serif</string></test>
-    <edit name="family" mode="assign" binding="same"><string>font</string></edit>
-  </match>
-  <config></config>
-</fontconfig>`;
-				
-				try {
-					await ffmpeg.createDir('/tmp');
-				} catch (e) {}
-				await ffmpeg.writeFile(fontsConf, fontsConfContent);
-				console.log('[BurnSubtitles] fonts.conf written to /tmp/fonts.conf');
-			}
-
-			// 3. Write input files
-			console.log('[BurnSubtitles] Writing input video to FFmpeg FS...');
-			await ffmpeg.writeFile(inputName, await fetchFile(videoFile));
-			console.log('[BurnSubtitles] Writing ASS subtitle file to FFmpeg FS...');
-			await ffmpeg.writeFile(subName, assContent);
-			console.log('[BurnSubtitles] Files written successfully');
-
-			// Setup progress tracking
-			ffmpeg.on('progress', ({ progress }) => {
-				if (onProgress) {
-					onProgress(Math.round(progress * 100));
-				}
-			});
-
-			// 4. Run FFmpeg with FontConfig configuration
-			// We point to our virtual fonts.conf via environment variable
-			const ffmpegArgs = [
-				'-y',
-				'-loglevel',
-				'info',
-				'-i',
-				inputName,
-				'-vf',
-				`subtitles=${subName}:fontsdir=${fontsDir}`, // Use fontsdir explicitly
-				'-c:v',
-				'libx264',
-				'-preset',
-				'ultrafast',
-				'-crf',
-				'28',
-				'-c:a',
-				'copy',
-				outputName,
-			];
-
-			console.log('[BurnSubtitles] FFmpeg command:', ffmpegArgs.join(' '));
+						const fontData = await fetch(fontURL).then((r) => r.arrayBuffer());
+						console.log(`[BurnSubtitles] Fetched font: ${fontData.byteLength} bytes`);
+			
+						try {
+							await ffmpeg.createDir('/fonts');
+						} catch (e) { /* ignore */ }
+						try {
+							await ffmpeg.createDir('/tmp');
+						} catch (e) { /* ignore */ }
+			
+						await ffmpeg.writeFile(`/${fontName}`, new Uint8Array(fontData));
+						console.log('[BurnSubtitles] Virtual font environment created.');
+			
+						// Debug: List files in root
+						const rootDir = await ffmpeg.listDir('/');
+						console.log('[BurnSubtitles] Root dir contents:', rootDir);
+			
+						// 2. Write input files
+						console.log('[BurnSubtitles] Writing input video and ASS to FFmpeg FS...');
+						await ffmpeg.writeFile(inputName, await fetchFile(videoFile));
+						await ffmpeg.writeFile(subName, assContent);
+						console.log('[BurnSubtitles] Files written successfully');
+			
+						// 3. Setup progress tracking
+						ffmpeg.on('progress', ({ progress }) => {
+							if (onProgress) {
+								onProgress(Math.round(progress * 100));
+							}
+						});
+			
+						// 4. Run FFmpeg
+						const ffmpegArgs = [
+							'-y',
+							'-loglevel',
+							'info',
+							'-i',
+							inputName,
+							// Use the subtitles filter with fontsdir pointing to root.
+							// We force Fontname=Geneva because we replaced the file with Geneva.ttf
+							'-vf',
+							`subtitles=${subName}:fontsdir=/:force_style='Fontname=Geneva'`,
+							'-c:v',
+							'libx264',
+							'-preset',
+							'ultrafast',
+							'-crf',
+							'28',
+							'-c:a',
+							'copy',
+							outputName,
+						];			console.log('[BurnSubtitles] FFmpeg command:', ffmpegArgs.join(' '));
 			console.log('[BurnSubtitles] Starting FFmpeg execution...');
 
-			try {
-				// We can't easily set process environment variables in browser worker 
-				// for the WASM module without the load() options, but fontsdir parameter
-				// in subtitles filter is a good alternative.
-				await ffmpeg.exec(ffmpegArgs);
-				console.log('[BurnSubtitles] FFmpeg execution completed successfully');
-			} catch (execError) {
-				console.error('[BurnSubtitles] FFmpeg exec failed:', execError);
-				throw execError;
-			}
+			await ffmpeg.exec(ffmpegArgs);
 
-			// Read output
+			console.log('[BurnSubtitles] FFmpeg execution completed successfully');
+
+			// 5. Read and return output
 			console.log('[BurnSubtitles] Reading output file...');
-
-			// Try checking if file exists first
-			try {
-				const dir = await ffmpeg.listDir('.');
-				console.log(
-					'[BurnSubtitles] Directory listing:',
-					dir.map((d) => d.name),
-				);
-			} catch (e) {
-				console.warn('[BurnSubtitles] Failed to list directory:', e);
-			}
-
 			const data = await ffmpeg.readFile(outputName);
-			let byteLength = 0;
 
-			// Handle Uint8Array specifically
-			if (data instanceof Uint8Array) {
-				byteLength = data.byteLength;
-				if (byteLength === 0) {
-					console.error('[BurnSubtitles] FFmpeg produced empty output file (0 bytes)');
-					throw new Error('FFmpeg produced empty output file');
-				}
-			} else if (typeof data === 'string') {
-				console.error('[BurnSubtitles] FFmpeg returned string data instead of binary');
-				throw new Error('FFmpeg returned unexpected string data');
+			if (!(data instanceof Uint8Array)) {
+				throw new Error('FFmpeg output is not Uint8Array');
 			}
 
-			console.log('[BurnSubtitles] Output file size:', byteLength, 'bytes');
+			if (data.byteLength === 0) {
+				console.error('[BurnSubtitles] FFmpeg produced empty output file (0 bytes)');
+				throw new Error('FFmpeg produced empty output file');
+			}
 
-			// Cleanup
-			console.log('[BurnSubtitles] Cleaning up temporary files...');
-			await ffmpeg.deleteFile(inputName);
-			await ffmpeg.deleteFile(subName);
-			await ffmpeg.deleteFile(outputName);
-			console.log('[BurnSubtitles] Cleanup complete');
+			console.log('[BurnSubtitles] Output file size:', data.byteLength, 'bytes');
 
-			console.log('[BurnSubtitles] Creating output blob...');
-			// Use a copy to avoid SharedArrayBuffer issues if cross-origin isolation is enabled
 			const blob = new Blob([data.slice().buffer], { type: 'video/mp4' });
-			console.log('[BurnSubtitles] Success! Output blob size:', blob.size, 'bytes');
+			console.log('[BurnSubtitles] Success! Output blob created.');
 			return blob;
 		} catch (error) {
 			console.error('[BurnSubtitles] ERROR occurred:', error);
-			console.error('[BurnSubtitles] Error stack:', error instanceof Error ? error.stack : 'N/A');
-
-			// Cleanup on error
-			try {
-				console.log('[BurnSubtitles] Attempting cleanup after error...');
-				await ffmpeg.deleteFile(inputName).catch(() => {});
-				await ffmpeg.deleteFile(subName).catch(() => {});
-				await ffmpeg.deleteFile(outputName).catch(() => {});
-			} catch (e) {
-				console.error('[BurnSubtitles] Cleanup also failed:', e);
-			}
-
 			throw new Error(`Video export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		} finally {
+			// Cleanup
+			console.log('[BurnSubtitles] Cleaning up temporary files...');
+			try {
+				await Promise.all([
+					ffmpeg.deleteFile(inputName),
+					ffmpeg.deleteFile(subName),
+					ffmpeg.deleteFile(outputName).catch(() => {}),
+					// Cleanup font files
+					ffmpeg.deleteFile(`/${fontName}`).catch(() => {}),
+					ffmpeg.deleteFile('/tmp').catch(() => {}),
+				]);
+				console.log('[BurnSubtitles] Cleanup complete.');
+			} catch (cleanupError) {
+				console.warn('[BurnSubtitles] Cleanup failed for some files:', cleanupError);
+			}
 		}
 	},
 };
