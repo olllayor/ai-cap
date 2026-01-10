@@ -3,99 +3,123 @@ import type { CaptionStyle } from '../stores/style.store';
 
 // Helper to format time for ASS: H:MM:SS.cs
 function formatASSTime(seconds: number): string {
-  const date = new Date(0);
-  date.setMilliseconds(seconds * 1000);
-  const h = date.getUTCHours();
-  const m = date.getUTCMinutes().toString().padStart(2, '0');
-  const s = date.getUTCSeconds().toString().padStart(2, '0');
-  const cs = Math.floor(date.getUTCMilliseconds() / 10).toString().padStart(2, '0');
-  
-  return `${h}:${m}:${s}.${cs}`;
+	const date = new Date(0);
+	date.setMilliseconds(seconds * 1000);
+	const h = date.getUTCHours();
+	const m = date.getUTCMinutes().toString().padStart(2, '0');
+	const s = date.getUTCSeconds().toString().padStart(2, '0');
+	const cs = Math.floor(date.getUTCMilliseconds() / 10)
+		.toString()
+		.padStart(2, '0');
+
+	return `${h}:${m}:${s}.${cs}`;
 }
 
-// Convert hex to ASS color &HBBGGRR
-function toASSColor(hex: string): string {
-  // Remove #
-  const clean = hex.replace('#', '');
-  // Split RGB
-  const r = clean.substring(0, 2);
-  const g = clean.substring(2, 4);
-  const b = clean.substring(4, 6);
-  // Return reversed BGR
-  return `&H00${b}${g}${r}`;
+// Convert hex or rgba to ASS color &HBBGGRR
+function toASSColor(color: string): string {
+	let hex = color;
+
+	// Handle rgba/rgb format
+	if (color.startsWith('rgba') || color.startsWith('rgb')) {
+		const match = color.match(/\d+/g);
+		if (match && match.length >= 3) {
+			const r = parseInt(match[0]).toString(16).padStart(2, '0');
+			const g = parseInt(match[1]).toString(16).padStart(2, '0');
+			const b = parseInt(match[2]).toString(16).padStart(2, '0');
+			hex = `#${r}${g}${b}`;
+		}
+	}
+
+	// Remove #
+	const clean = hex.replace('#', '');
+	// Split RGB
+	const r = clean.substring(0, 2);
+	const g = clean.substring(2, 4);
+	const b = clean.substring(4, 6);
+	// Return reversed BGR
+	return `&H00${b}${g}${r}`;
 }
 
-export function generateASS(transcript: Word[], style: CaptionStyle): string {
-  // 1. Header
-  // 2. Styles
-  // 3. Events
 
-  const primaryColor = toASSColor(style.textColor);
-  const outlineColor = toASSColor(style.outlineColor);
-  const backColor = toASSColor(style.shadowColor);
-  
-  // Calculate vertical margin from bottom %
-  // ASS uses alignment 2 (bottom center), so MarginV puts it up from bottom
-  // Assuming 1080p video as reference for font size scaling if needed, 
-  // but usually font size is absolute. Let's assume generic playres.
-  // We'll set PlayResY=1080 to make pixel sizes predictable.
-  const playResY = 1080;
-  // Map font size roughly
-  const fontSize = style.fontSize * (playResY / 400); // 400 is arbitrary viewport reference
-  const marginV = (style.yOffset / 100) * playResY;
+/**
+ * Convert hex or rgba to ASS color &HBBGGRR
+ */
+export function generateASS(
+	transcript: Word[],
+	style: CaptionStyle,
+	width: number,
+	height: number,
+	fontData?: Uint8Array,
+): string {
+	// 1. Header
+	// 2. Styles
+	// 3. Fonts (embedded)
+	// 4. Events
 
-  const header = `[Script Info]
-ScriptType: v4.00+
-PlayResX: 1920
-PlayResY: ${playResY}
+	console.log('[ASS Generator] Input resolution:', { width, height });
+	console.log('[ASS Generator] Input colors:', {
+		textColor: style.textColor,
+		outlineColor: style.outlineColor,
+		shadowColor: style.shadowColor,
+	});
+	console.log('[ASS Generator] Font data available:', !!fontData, fontData ? `${fontData.byteLength} bytes` : 'null');
 
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,${style.fontFamily},${fontSize},${primaryColor},&H000000FF,${outlineColor},${backColor},${style.fontWeight >= 700 ? -1 : 0},0,0,0,100,100,0,0,1,${style.outlineWidth},${style.shadowBlur},2,10,10,${Math.floor(marginV)},1
+	const primaryColor = toASSColor(style.textColor);
+	const outlineColor = toASSColor(style.outlineColor);
+	const backColor = toASSColor(style.shadowColor);
 
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-`;
+	// Scale font size properly based on video height
+	const baseHeight = 1080;
+	const fontSize = Math.round(style.fontSize * 2.2 * (height / baseHeight));
+	const marginV = Math.round((style.yOffset / 100) * height);
 
-  const events = transcript.map(word => {
-    const start = formatASSTime(word.start);
-    const end = formatASSTime(word.end);
-    
-    // Animation Logic
-    let text = word.word;
-    
-    // Simple Pop/Highlight via distinct events per word is natural here since 
-    // we iterate word by word.
-    
-    // If Highlight animation, we can use a different style for specific words 
-    // or overriding tags. For MVP, we apply the "Highlight Color" to ALL words
-    // because "active words" is what we are rendering.
-    // Wait, usually highlight means "karaoke active word is color X, rest is color Y".
-    // Since we only show ONE word at a time (or short segment),
-    // they are by definition "active".
-    
-    // So if style.animation === 'highlight', we can just use the highlight color 
-    // as primary color or apply a tag.
-    
-    if (style.animation === 'highlight' || style.animation === 'karaoke') {
-      const hColor = toASSColor(style.highlightColor);
-      // Override primary color with highlight color
-      text = `{\\c${hColor}}${text}`;
-    }
-    
-    if (style.uppercase) {
-      text = text.toUpperCase();
-    }
-    
-    if (style.animation === 'pop') {
-       // Simple scaling not easily done in vanilla ASS without complex transforms
-       // but we can fake it or just ignore for MVP burn-in simplicity.
-       // Transforms: {\t(0,150,\fscx115\fscy115)\t(150,300,\fscx100\fscy100)}
-       // This is complex to get right per word duration.
-    }
+	// In the virtual FS approach, we'll map the actual font data to a generic name 
+	// or ensure the name matches exactly. For robustness, we'll use the family name.
+	const fontName = style.fontFamily;
 
-    return `Dialogue: 0,${start},${end},Default,,0,0,0,,${text}`;
-  }).join('\n');
+	const header = [
+		'[Script Info]',
+		'ScriptType: v4.00+',
+		`PlayResX: ${width}`,
+		`PlayResY: ${height}`,
+		'',
+		'[V4+ Styles]',
+		'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+		`Style: Default,${fontName},${fontSize},${primaryColor},&H000000FF,${outlineColor},${backColor},${
+			style.fontWeight >= 700 ? -1 : 0
+		},0,0,0,100,100,0,0,1,${style.outlineWidth},${style.shadowBlur},2,10,10,${Math.floor(marginV)},1`,
+		'',
+	].join('\r\n');
 
-  return header + events;
+	// We no longer embed the font data directly in the ASS file.
+	// This makes the script cleaner and rendering more robust via FFmpeg's virtual FS.
+	const fontsSection = '';
+
+	const eventsHeader = [
+		'[Events]',
+		'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
+		'',
+	].join('\r\n');
+
+	const events = transcript
+		.map((word) => {
+			const start = formatASSTime(word.start);
+			const end = formatASSTime(word.end);
+
+			let text = word.word;
+
+			if (style.animation === 'highlight' || style.animation === 'karaoke') {
+				const hColor = toASSColor(style.highlightColor);
+				text = `{\\c${hColor}}${text}`;
+			}
+
+			if (style.uppercase) {
+				text = text.toUpperCase();
+			}
+
+			return `Dialogue: 0,${start},${end},Default,,0,0,0,,${text}`;
+		})
+		.join('\r\n');
+
+	return header + fontsSection + eventsHeader + events;
 }
