@@ -40,7 +40,7 @@ export function ExportPanel() {
 			// 1. Get Font Data from Main Thread (Reliable)
 			console.log(`[Export] Fetching font data for ${style.fontFamily}...`);
 			setExportProgress(5);
-			const { data: fontData, family: resolvedFontFamily } = await getFontData(style.fontFamily);
+			const { data: fontData, family: resolvedFontFamily } = await getFontData(style.fontFamily, style.fontWeight);
 			console.log('[Export] Font data result:', fontData ? `${fontData.byteLength} bytes` : 'null', 'Resolved family:', resolvedFontFamily);
 
 			// 2. Get Video Dimensions

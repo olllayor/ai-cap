@@ -9,6 +9,9 @@ export interface FontFetchResult {
 	family: string;
 }
 
+type FontVariant = { minWeight: number; url: string };
+type BundledFont = { family: string; variants: FontVariant[] };
+
 const FALLBACK_FONT = {
 	family: 'Noto Sans',
 	// Served from /public/fonts/noto-sans.ttf
@@ -16,6 +19,47 @@ const FALLBACK_FONT = {
 		return new URL('/fonts/noto-sans.ttf', window.location.origin).href;
 	},
 };
+
+function assetUrl(pathname: string): string {
+	return new URL(pathname, window.location.origin).href;
+}
+
+const BUNDLED_FONTS: Record<string, BundledFont> = {
+	'inter': {
+		family: 'Inter',
+		variants: [{ minWeight: 0, url: assetUrl('/fonts/inter.ttf') }],
+	},
+	'dm sans': {
+		family: 'DM Sans',
+		variants: [{ minWeight: 0, url: assetUrl('/fonts/dm-sans.ttf') }],
+	},
+	'montserrat': {
+		family: 'Montserrat',
+		variants: [{ minWeight: 0, url: assetUrl('/fonts/montserrat.ttf') }],
+	},
+	'poppins': {
+		family: 'Poppins',
+		variants: [
+			{ minWeight: 900, url: assetUrl('/fonts/poppins-black.ttf') },
+			{ minWeight: 700, url: assetUrl('/fonts/poppins-bold.ttf') },
+			{ minWeight: 0, url: assetUrl('/fonts/poppins-regular.ttf') },
+		],
+	},
+	'sans-serif': {
+		family: FALLBACK_FONT.family,
+		variants: [{ minWeight: 0, url: FALLBACK_FONT.url }],
+	},
+};
+
+function resolveBundledFont(family: string, weight?: number): { family: string; url: string } | null {
+	const key = family.replace(/['"]/g, '').toLowerCase().trim();
+	const bundled = BUNDLED_FONTS[key];
+	if (!bundled) return null;
+
+	const desiredWeight = weight ?? 400;
+	const variant = [...bundled.variants].sort((a, b) => b.minWeight - a.minWeight).find((v) => desiredWeight >= v.minWeight);
+	return { family: bundled.family, url: variant?.url ?? bundled.variants[bundled.variants.length - 1].url };
+}
 
 function isLikelyFontBinary(data: Uint8Array): boolean {
 	// TTF: 0x00010000, 'true', 'typ1'
@@ -45,12 +89,19 @@ function isLikelyFontBinary(data: Uint8Array): boolean {
 	return false;
 }
 
-export async function getFontData(family: string): Promise<FontFetchResult> {
+export async function getFontData(family: string, weight?: number): Promise<FontFetchResult> {
 	try {
 		const safeFamily = family.replace(/['"]/g, '').toLowerCase();
 		let fontUrl: string | null = null;
 		let fallbackUrl: string | null = null;
 		let resolvedFamily = family;
+
+		// 0. Prefer bundled TTFs for known families to match preview fonts reliably.
+		const bundled = resolveBundledFont(family, weight);
+		if (bundled) {
+			fontUrl = bundled.url;
+			resolvedFamily = bundled.family;
+		}
 
 		// 1. Search document styleSheets for @font-face rules
 		for (const sheet of Array.from(document.styleSheets)) {
