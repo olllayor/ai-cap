@@ -40,8 +40,8 @@ export function ExportPanel() {
 			// 1. Get Font Data from Main Thread (Reliable)
 			console.log(`[Export] Fetching font data for ${style.fontFamily}...`);
 			setExportProgress(5);
-			const fontData = await getFontData(style.fontFamily);
-			console.log('[Export] Font data result:', fontData ? `${fontData.byteLength} bytes` : 'null');
+			const { data: fontData, family: resolvedFontFamily } = await getFontData(style.fontFamily);
+			console.log('[Export] Font data result:', fontData ? `${fontData.byteLength} bytes` : 'null', 'Resolved family:', resolvedFontFamily);
 
 			// 2. Get Video Dimensions
 			console.log('[Export] Detecting video dimensions...');
@@ -59,7 +59,8 @@ export function ExportPanel() {
 			// 3. Generate ASS
 			console.log('[Export] Generating ASS content...');
 			setExportProgress(10);
-			const assContent = generateASS(transcript, style, dimensions.width, dimensions.height, fontData || undefined);
+			const styleForAss = { ...style, fontFamily: resolvedFontFamily };
+			const assContent = generateASS(transcript, styleForAss, dimensions.width, dimensions.height, fontData || undefined);
 			console.log('[Export] ASS generated, length:', assContent.length);
 			console.log('[Export] ASS preview:', assContent.substring(0, 500));
 
