@@ -5,7 +5,7 @@ import { useStyleStore, type AnimationType } from '../../stores/style.store';
 export function StylePanel() {
   const { style, updateStyle } = useStyleStore();
 
-  const fonts = ['Montserrat', 'Poppins', 'Inter', 'sans-serif'];
+  const fonts = ['DM Sans', 'Instrument Sans', 'Google Sans Flex', 'Geist Sans', 'Montserrat', 'Poppins', 'Inter', 'sans-serif'];
   const animations: { id: AnimationType; label: string }[] = [
     { id: 'none', label: 'Static' },
     { id: 'pop', label: 'Pop' },

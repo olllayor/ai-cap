@@ -45,11 +45,11 @@ export function useFFmpeg() {
     return await workerRef.current.extractAudio(file);
   };
 
-  const burnSubtitles = async (file: File, assContent: string): Promise<Blob> => {
+  const burnSubtitles = async (file: File, assContent: string, fontData?: Uint8Array): Promise<Blob> => {
     if (!workerRef.current || !isLoaded) {
       throw new Error('FFmpeg not loaded');
     }
-    return await workerRef.current.burnSubtitles(file, assContent);
+    return await workerRef.current.burnSubtitles(file, assContent, fontData);
   };
 
   return { isLoaded, isLoading, loadError, extractAudio, burnSubtitles };

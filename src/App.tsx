@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Header } from './components/layout/Header';
 import { Container } from './components/layout/Container';
 import { useCompatibility } from './hooks/useCompatibility';
-import { AlertTriangle, Loader2, Sparkles, Edit3, Palette, Download } from 'lucide-react';
+import { AlertTriangle, Loader2, Sparkles } from 'lucide-react';
 import { UploadZone } from './components/upload/UploadZone';
 import { useVideoStore } from './stores/video.store';
 import { useFFmpeg } from './hooks/useFFmpeg';
@@ -10,19 +10,19 @@ import { useTranscriber } from './hooks/useTranscription';
 import { useCaptionStore } from './stores/caption.store';
 import { CaptionEditor } from './components/editor/CaptionEditor';
 import { StylePanel } from './components/styling/StylePanel';
-import { CaptionOverlay } from './components/preview/CaptionOverlay';
 import { ExportPanel } from './components/export/ExportPanel';
+import { VideoPreview } from './components/preview/VideoPreview';
+import { TabNavigation } from './components/layout/TabNavigation';
 
 type Tab = 'edit' | 'style' | 'export';
 
 function App() {
   const { isCompatible, issues, checking } = useCompatibility();
-  const { file, setFile, videoUrl, reset, setCurrentTime, setDuration, setIsPlaying, currentTime } = useVideoStore();
+  const { file, setFile, reset, currentTime, setIsPlaying } = useVideoStore();
   const { extractAudio, isLoaded: ffmpegLoaded, isLoading: ffmpegLoading, loadError: ffmpegError } = useFFmpeg();
   const { transcribe, modelLoading } = useTranscriber();
   const { status, setStatus } = useCaptionStore();
   
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [activeTab, setActiveTab] = useState<Tab>('edit');
 
   const handleGenerateCaptions = async () => {
@@ -37,9 +37,7 @@ function App() {
       await transcribe(audioBlob);
       
       // Auto-play video after transcript is done
-      if (videoRef.current) {
-        videoRef.current.play();
-      }
+      setIsPlaying(true);
     } catch (error) {
       console.error('Pipeline failed:', error);
       setStatus('error');
@@ -99,7 +97,7 @@ function App() {
             </div>
           ) : (
              <div className="animate-slide-up">
-              {/* Error Banner if Loading Failed */}
+              {/* Error Banner */}
               {(ffmpegError || (!ffmpegLoaded && !ffmpegLoading && !ffmpegError)) && (
                 <div className="mb-6 rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-red-200 flex items-center gap-3">
                   <AlertTriangle className="h-5 w-5 shrink-0" />
@@ -131,11 +129,6 @@ function App() {
                         ? 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)] opacity-50 cursor-not-allowed' 
                         : 'bg-[var(--color-accent-primary)] text-white hover:bg-[var(--color-accent-hover)]'}
                     `}
-                    title={
-                      !ffmpegLoaded ? "Waiting for FFmpeg to load..." :
-                      modelLoading ? "Waiting for Whisper model..." :
-                      status === 'completed' ? "Already generated" : "Generate Captions"
-                    }
                   >
                     {isProcessing || ffmpegLoading || modelLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                     {status === 'completed' ? 'Regenerated' : 
@@ -153,59 +146,40 @@ function App() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-200px)] min-h-[600px]">
-                {/* Left Column: Video Preview (5 cols) */}
-                <div className="lg:col-span-5 flex flex-col gap-4">
-                  <div className="relative flex-1 rounded-2xl bg-black shadow-2xl border border-[var(--color-border)] overflow-hidden flex items-center justify-center">
-                    <div className="relative w-full h-full max-w-[400px] aspect-[9/16]">
-                      <video 
-                        ref={videoRef}
-                        src={videoUrl!} 
-                        controls 
-                        playsInline
-                        className="w-full h-full object-contain"
-                        onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-                        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-                        onPlay={() => setIsPlaying(true)}
-                        onPause={() => setIsPlaying(false)}
-                      />
-                      <CaptionOverlay currentTime={currentTime} />
+              {/* HYBRID LAYOUT SWITCHER */}
+              {activeTab === 'edit' ? (
+                /* Vertical Layout (Timeline Mode) */
+                <div className="flex flex-col gap-6 h-[calc(100vh-180px)] min-h-[800px]">
+                  <div className="flex-1 min-h-0 flex justify-center">
+                    <VideoPreview />
+                  </div>
+                  
+                  <div className="h-[320px] shrink-0 flex flex-col gap-4">
+                    <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+                    <div className="flex-1 bg-[var(--color-bg-secondary)] rounded-2xl border border-[var(--color-border)] overflow-hidden shadow-lg relative">
+                      <CaptionEditor currentTime={currentTime} />
                     </div>
                   </div>
                 </div>
-                
-                {/* Right Column: Tools (7 cols) */}
-                <div className="lg:col-span-7 flex flex-col gap-4">
-                  {/* Tabs */}
-                  <div className="flex bg-[var(--color-bg-secondary)] p-1 rounded-xl border border-[var(--color-border)] w-fit">
-                    <button 
-                      onClick={() => setActiveTab('edit')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'edit' ? 'bg-[var(--color-accent-primary)] text-white shadow-lg' : 'text-[var(--color-text-secondary)] hover:text-white'}`}
-                    >
-                      <Edit3 className="h-4 w-4" /> Edit
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('style')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'style' ? 'bg-[var(--color-accent-primary)] text-white shadow-lg' : 'text-[var(--color-text-secondary)] hover:text-white'}`}
-                    >
-                      <Palette className="h-4 w-4" /> Style
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('export')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'export' ? 'bg-[var(--color-accent-primary)] text-white shadow-lg' : 'text-[var(--color-text-secondary)] hover:text-white'}`}
-                    >
-                      <Download className="h-4 w-4" /> Export
-                    </button>
+              ) : (
+                /* Horizontal Grid Layout (Style & Export Mode) */
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-200px)] min-h-[600px]">
+                  <div className="lg:col-span-5 flex flex-col gap-4">
+                    <div className="flex-1 flex items-center justify-center">
+                       <VideoPreview className="w-full" />
+                    </div>
                   </div>
-
-                  {/* Tool Content */}
-                  <div className="flex-1 bg-[var(--color-bg-secondary)] rounded-2xl border border-[var(--color-border)] overflow-hidden shadow-lg">
-                    {activeTab === 'edit' && <CaptionEditor currentTime={currentTime} />}
-                    {activeTab === 'style' && <StylePanel />}
-                    {activeTab === 'export' && <ExportPanel />}
+                  
+                  <div className="lg:col-span-7 flex flex-col gap-4">
+                    <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+                    <div className="flex-1 bg-[var(--color-bg-secondary)] rounded-2xl border border-[var(--color-border)] overflow-hidden shadow-lg">
+                      {activeTab === 'style' && <StylePanel />}
+                      {activeTab === 'export' && <ExportPanel />}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
             </div>
           )}
         </Container>

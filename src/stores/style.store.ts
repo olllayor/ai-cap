@@ -27,19 +27,19 @@ interface StyleState {
 }
 
 const DEFAULT_STYLE: CaptionStyle = {
-  fontFamily: 'Montserrat',
-  fontSize: 48,
-  fontWeight: 800,
+  fontFamily: 'DM Sans',
+  fontSize: 32,
+  fontWeight: 700,
   textColor: '#FFFFFF',
   outlineColor: '#000000',
-  outlineWidth: 3,
+  outlineWidth: 1,
   backgroundColor: '#000000',
   backgroundOpacity: 0,
   shadowColor: 'rgba(0,0,0,0.5)',
   shadowBlur: 4,
   animation: 'highlight',
   highlightColor: '#6366f1', // Indigo-500
-  yOffset: 20,
+  yOffset: 8,
   maxWidth: 80,
   uppercase: true,
 };

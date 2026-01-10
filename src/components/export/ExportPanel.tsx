@@ -7,6 +7,8 @@ import { useVideoStore } from '../../stores/video.store';
 import { downloadSRT } from '../../lib/srt-generator';
 import { generateASS } from '../../lib/ass-generator';
 
+import { getFontData } from '../../lib/font-loader';
+
 export function ExportPanel() {
   const { transcript } = useCaptionStore();
   const { style } = useStyleStore();
@@ -27,13 +29,15 @@ export function ExportPanel() {
     setDownloadUrl(null);
     
     try {
-      // Generate ASS
+      // 1. Get Font Data from Main Thread (Reliable)
+      console.log(`[Export] Fetching font data for ${style.fontFamily}...`);
+      const fontData = await getFontData(style.fontFamily);
+      
+      // 2. Generate ASS
       const assContent = generateASS(transcript, style);
       
-      // Burn
-      // TODO: Actual progress reporting from FFmpeg worker
-      // For now we just show spinner
-      const videoBlob = await burnSubtitles(file, assContent);
+      // 3. Burn
+      const videoBlob = await burnSubtitles(file, assContent, fontData || undefined);
       
       const url = URL.createObjectURL(videoBlob);
       setDownloadUrl(url);
