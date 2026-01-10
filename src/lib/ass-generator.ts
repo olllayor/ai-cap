@@ -73,9 +73,10 @@ export function generateASS(
 	const fontSize = Math.round(style.fontSize * 2.2 * (height / baseHeight));
 	const marginV = Math.round((style.yOffset / 100) * height);
 
-	// In the virtual FS approach, we'll map the actual font data to a generic name 
-	// or ensure the name matches exactly. For robustness, we'll use the family name.
-	const fontName = style.fontFamily;
+	// When font data is provided, use a generic font name that matches the file we write to FFmpeg's virtual FS.
+	// This ensures libass can find the font via the fontsdir parameter without needing fontconfig.
+	// When no font data is available, fall back to a system font like Arial.
+	const fontName = fontData ? 'CustomFont' : 'Arial';
 
 	const header = [
 		'[Script Info]',
