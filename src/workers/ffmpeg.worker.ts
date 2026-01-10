@@ -81,7 +81,6 @@ const api = {
 		const subName = 'subs.ass';
 		const outputName = 'output.mp4';
 		const fontsDir = '/fonts';
-		const fontsConf = '/tmp/fonts.conf';
 
 		try {
 			// 1. Prepare Font Files
@@ -89,30 +88,14 @@ const api = {
 				console.log('[BurnSubtitles] Writing font to virtual FS...');
 				try {
 					await ffmpeg.createDir(fontsDir);
-				} catch (e) {
-					// Ignore if exists
+				} catch {
+					// Directory already exists - this is expected on subsequent calls
 				}
-				// Write the font file using a generic name or the specific extension
-				await ffmpeg.writeFile(`${fontsDir}/font.ttf`, fontData);
-
-				// 2. Generate fonts.conf for fontconfig
-				// This is crucial for libass to find the font in FFmpeg.wasm
-				const fontsConfContent = `<?xml version="1.0"?>
-<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
-<fontconfig>
-  <dir>${fontsDir}</dir>
-  <match target="pattern">
-    <test qual="any" name="family"><string>sans-serif</string></test>
-    <edit name="family" mode="assign" binding="same"><string>font</string></edit>
-  </match>
-  <config></config>
-</fontconfig>`;
-				
-				try {
-					await ffmpeg.createDir('/tmp');
-				} catch (e) {}
-				await ffmpeg.writeFile(fontsConf, fontsConfContent);
-				console.log('[BurnSubtitles] fonts.conf written to /tmp/fonts.conf');
+				// IMPORTANT: Font filename (without extension) must match the Fontname in the ASS style.
+				// The ASS generator uses 'CustomFont' as Fontname, so we save the file as 'CustomFont.ttf'.
+				// If these names don't match, libass will fail to find the font and the render will fail.
+				await ffmpeg.writeFile(`${fontsDir}/CustomFont.ttf`, fontData);
+				console.log('[BurnSubtitles] Font written to /fonts/CustomFont.ttf');
 			}
 
 			// 3. Write input files
