@@ -7,7 +7,7 @@
 export async function getFontData(family: string): Promise<Uint8Array | null> {
   try {
     const safeFamily = family.replace(/['"]/g, '').toLowerCase();
-    let fontUrl: string | null = null;
+    let fontUrl: string | any;
 
     // 1. Search document styleSheets for the @font-face rule
     for (const sheet of Array.from(document.styleSheets)) {
