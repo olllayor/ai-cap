@@ -85,6 +85,7 @@ const api = {
 		const subName = 'subs.ass';
 		const outputName = 'output.mp4';
 		const fontsDir = '/fonts';
+		let fontFileName: string | undefined;
 
 		try {
 			// 1. Prepare Font Files
@@ -111,7 +112,7 @@ const api = {
 				// 1b. Write the font file using its proper family name
 				// This increases the chance of libass matching the font request in the ASS file
 				const safeName = fontFamily ? fontFamily.replace(/['"]/g, '').trim() : 'CustomFont';
-				const fontFileName = `${fontsDir}/${safeName}.ttf`;
+				fontFileName = `${fontsDir}/${safeName}.ttf`;
 				
 				await ffmpeg.writeFile(fontFileName, fontData);
 				console.log(`[BurnSubtitles] Wrote font file: ${fontFileName} (${fontData.byteLength} bytes)`);
@@ -207,7 +208,7 @@ const api = {
 					ffmpeg.deleteFile(inputName).catch(() => {}),
 					ffmpeg.deleteFile(subName).catch(() => {}),
 					ffmpeg.deleteFile(outputName).catch(() => {}),
-					ffmpeg.deleteFile(fontFile).catch(() => {}),
+					fontFileName ? ffmpeg.deleteFile(fontFileName).catch(() => {}) : Promise.resolve(),
 				]);
 				console.log('[BurnSubtitles] Cleanup complete.');
 			} catch (cleanupError) {
