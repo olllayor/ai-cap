@@ -100,7 +100,7 @@ function buildSegmentText(
 }
 
 /**
- * Convert hex or rgba to ASS color &HBBGGRR
+ * Generate ASS subtitle file content
  */
 export function generateASS(
 	transcript: Word[],
@@ -110,8 +110,7 @@ export function generateASS(
 ): string {
 	// 1. Header
 	// 2. Styles
-	// 3. Fonts (embedded)
-	// 4. Events
+	// 3. Events
 
 	console.log('[ASS Generator] Input resolution:', { width, height });
 	console.log('[ASS Generator] Input colors:', {
@@ -119,7 +118,7 @@ export function generateASS(
 		outlineColor: style.outlineColor,
 		shadowColor: style.shadowColor,
 	});
-
+	console.log('[ASS Generator] Font family:', style.fontFamily);
 
 	const primaryColor = toASSColor(style.textColor);
 	const outlineColor = toASSColor(style.outlineColor);
@@ -131,8 +130,9 @@ export function generateASS(
 	const marginV = Math.round((style.yOffset / 100) * height);
 	const marginX = Math.max(0, Math.round(((100 - style.maxWidth) / 100) * width * 0.5));
 
-	// In the virtual FS approach, we'll map the actual font data to a generic name 
-	// or ensure the name matches exactly. For robustness, we'll use the family name.
+	// Use a generic font name for embedded fonts
+	// When we embed the font, libass will use the internal font name from the TTF
+	// For external fonts via fontsdir, libass tries to match by filename or internal name
 	const fontName = style.fontFamily;
 
 	const header = [
@@ -151,8 +151,10 @@ export function generateASS(
 		'',
 	].join('\r\n');
 
-	// We no longer embed the font data directly in the ASS file.
-	// This makes the script cleaner and rendering more robust via FFmpeg's virtual FS.
+	// Note: We don't embed fonts in the ASS file for FFmpeg.wasm because:
+	// 1. libass embedded font support is inconsistent across builds
+	// 2. The encoded font data significantly increases ASS file size
+	// 3. We use the fontsdir approach in FFmpeg instead
 	const fontsSection = '';
 
 	const eventsHeader = [
