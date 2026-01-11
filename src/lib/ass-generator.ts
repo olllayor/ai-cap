@@ -124,9 +124,9 @@ export function generateASS(
 	const outlineColor = toASSColor(style.outlineColor);
 	const backColor = toASSColor(style.shadowColor);
 
-	const baseline = 1080;
-	const scale = Math.min(width, height) / baseline;
-	const fontSize = Math.max(1, Math.round(style.fontSize * scale));
+	// User requested to remove scaling as it causes double-scaling issues on non-1080p videos.
+	// We use the raw font size since PlayResX/Y match the video dimensions.
+	const fontSize = style.fontSize;
 	const marginV = Math.round((style.yOffset / 100) * height);
 	const marginX = Math.max(0, Math.round(((100 - style.maxWidth) / 100) * width * 0.5));
 

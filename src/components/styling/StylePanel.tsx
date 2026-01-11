@@ -8,7 +8,7 @@ const stylePresets: { name: string; icon: typeof Sparkles; style: Partial<Captio
 		name: 'Minimalist',
 		icon: Type,
 		style: {
-			fontFamily: 'DM Sans',
+			fontFamily: 'Inter',
 			fontSize: 32,
 			fontWeight: 400,
 			textColor: '#FFFFFF',
@@ -70,7 +70,7 @@ const stylePresets: { name: string; icon: typeof Sparkles; style: Partial<Captio
 	},
 ];
 
-const SUPPORTED_FONTS = ['Inter', 'Montserrat', 'Poppins', 'DM Sans', 'Noto Sans'] as const;
+const SUPPORTED_FONTS = ['Inter', 'Montserrat', 'Poppins', 'Noto Sans'] as const;
 type SupportedFont = (typeof SUPPORTED_FONTS)[number];
 
 export function StylePanel() {

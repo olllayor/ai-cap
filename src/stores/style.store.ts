@@ -28,7 +28,7 @@ interface StyleState {
 }
 
 const DEFAULT_STYLE: CaptionStyle = {
-	fontFamily: 'DM Sans',
+	fontFamily: 'Inter',
 	fontSize: 32,
 	fontWeight: 700,
 	textColor: '#FFFFFF',
