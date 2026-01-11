@@ -31,8 +31,12 @@ export function useFFmpeg() {
 		setLoadError(null);
 
 		try {
-			// Initialize worker
-			const worker = new Worker(new URL('../workers/ffmpeg.worker.ts', import.meta.url), {
+			// Initialize worker with cache busting
+			const workerUrl = new URL('../workers/ffmpeg.worker.ts', import.meta.url);
+			// Append version/timestamp to force reload of the worker file
+			workerUrl.searchParams.append('v', Date.now().toString());
+			
+			const worker = new Worker(workerUrl, {
 				type: 'module',
 			});
 			workerInstanceRef.current = worker;
@@ -63,13 +67,14 @@ export function useFFmpeg() {
 		file: File,
 		assContent: string,
 		fontData?: Uint8Array,
+		fontFamily?: string,
 		onProgress?: (progress: number) => void,
 	): Promise<Blob> => {
 		await ensureLoaded();
 		if (!workerRef.current) {
 			throw new Error('FFmpeg not loaded');
 		}
-		return await workerRef.current.burnSubtitles(file, assContent, fontData, onProgress);
+		return await workerRef.current.burnSubtitles(file, assContent, fontData, fontFamily, onProgress);
 	};
 
 	return { isLoaded, isLoading, loadError, extractAudio, burnSubtitles };

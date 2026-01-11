@@ -40,6 +40,12 @@ export function ExportPanel() {
 			// 1. Get Font Data from Main Thread (Reliable)
 			console.log(`[Export] Fetching font data for ${style.fontFamily}...`);
 			setExportProgress(5);
+			
+			if (typeof getFontData !== 'function') {
+				console.error('[Export] CRITICAL: getFontData is not a function!', { getFontData });
+				throw new Error('Font loader not properly initialized (getFontData is undefined)');
+			}
+
 			const { data: fontData, family: resolvedFontFamily } = await getFontData(style.fontFamily, style.fontWeight);
 			console.log('[Export] Font data result:', fontData ? `${fontData.byteLength} bytes` : 'null', 'Resolved family:', resolvedFontFamily);
 
@@ -60,7 +66,7 @@ export function ExportPanel() {
 			console.log('[Export] Generating ASS content...');
 			setExportProgress(10);
 			const styleForAss = { ...style, fontFamily: resolvedFontFamily };
-			const assContent = generateASS(transcript, styleForAss, dimensions.width, dimensions.height, fontData || undefined);
+			const assContent = generateASS(transcript, styleForAss, dimensions.width, dimensions.height);
 			console.log('[Export] ASS generated, length:', assContent.length);
 			console.log('[Export] ASS preview:', assContent.substring(0, 500));
 
@@ -71,6 +77,7 @@ export function ExportPanel() {
 				file,
 				assContent,
 				fontData || undefined,
+				resolvedFontFamily,
 				proxy((progress: number) => {
 					// Map FFmpeg progress (0-100) to our range (15-95)
 					setExportProgress(15 + Math.round(progress * 0.8));
