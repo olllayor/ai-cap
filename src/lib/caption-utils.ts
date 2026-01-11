@@ -31,7 +31,7 @@ export function groupWordsIntoSegments(words: Word[], maxChars: number = 40, max
 
     if (shouldSplit && currentWords.length > 0) {
       // Push current segment
-      segments.push(createSegment(currentWords));
+      segments.push(createSegment(currentWords, segments.length));
       currentWords = [];
       currentTextLength = 0;
     }
@@ -42,15 +42,15 @@ export function groupWordsIntoSegments(words: Word[], maxChars: number = 40, max
 
   // Push lingering words
   if (currentWords.length > 0) {
-    segments.push(createSegment(currentWords));
+    segments.push(createSegment(currentWords, segments.length));
   }
 
   return segments;
 }
 
-function createSegment(words: Word[]): CaptionSegment {
+function createSegment(words: Word[], index: number): CaptionSegment {
   return {
-    id: `${words[0].start}-${words[words.length-1].end}`,
+    id: `${words[0].start}-${words[words.length-1].end}-${index}`,
     words: words,
     text: words.map(w => w.word).join(' '),
     start: words[0].start,
