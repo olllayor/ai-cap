@@ -14,12 +14,6 @@
 	"dependencies": {
 		"@ffmpeg/ffmpeg": "^0.12.15",
 		"@ffmpeg/util": "^0.12.2",
-		"@fontsource/dm-sans": "^5.2.8",
-		"@fontsource/geist-sans": "^5.2.5",
-		"@fontsource/instrument-sans": "^5.2.8",
-		"@fontsource/inter": "^5.2.8",
-		"@fontsource/montserrat": "^5.2.8",
-		"@fontsource/poppins": "^5.2.7",
 		"@huggingface/transformers": "^3.8.1",
 		"comlink": "^4.4.2",
 		"idb": "^8.0.3",

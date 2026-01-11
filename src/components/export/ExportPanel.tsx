@@ -7,7 +7,6 @@ import { useStyleStore } from '../../stores/style.store';
 import { useVideoStore } from '../../stores/video.store';
 import { downloadSRT } from '../../lib/srt-generator';
 import { generateASS } from '../../lib/ass-generator';
-
 import { getFontData } from '../../lib/font-loader';
 
 export function ExportPanel() {
@@ -33,17 +32,11 @@ export function ExportPanel() {
 
 		try {
 			console.log('=== VIDEO EXPORT STARTED ===');
-			console.log('Video file:', file.name, 'Size:', file.size, 'bytes');
-			console.log('Transcript words count:', transcript.length);
-			console.log('Style:', style);
-
-			// 1. Get Font Data from Main Thread (Reliable)
-			console.log(`[Export] Fetching font data for ${style.fontFamily}...`);
 			setExportProgress(5);
-			const fontData = await getFontData(style.fontFamily);
-			console.log('[Export] Font data result:', fontData ? `${fontData.byteLength} bytes` : 'null');
+			const { data: fontData, family: resolvedFontFamily } = await getFontData(style.fontFamily, style.fontWeight);
+			console.log('[Export] Font data result:', fontData ? `${fontData.byteLength} bytes` : 'null', 'Resolved family:', resolvedFontFamily);
 
-			// 2. Get Video Dimensions
+			// 1. Get Video Dimensions
 			console.log('[Export] Detecting video dimensions...');
 			const dimensions = await new Promise<{ width: number; height: number }>((resolve) => {
 				const video = document.createElement('video');
@@ -56,20 +49,20 @@ export function ExportPanel() {
 			});
 			console.log('[Export] Video dimensions:', dimensions);
 
-			// 3. Generate ASS
+			// 2. Generate ASS (font data is no longer needed here)
 			console.log('[Export] Generating ASS content...');
 			setExportProgress(10);
-			const assContent = generateASS(transcript, style, dimensions.width, dimensions.height, fontData || undefined);
+			const styleForAss = { ...style, fontFamily: resolvedFontFamily };
+			const assContent = generateASS(transcript, styleForAss, dimensions.width, dimensions.height);
 			console.log('[Export] ASS generated, length:', assContent.length);
-			console.log('[Export] ASS preview:', assContent.substring(0, 500));
 
-			// 4. Burn with progress callback
+			// 3. Burn with progress callback
 			console.log('[Export] Starting subtitle burn...');
 			setExportProgress(15);
 			const videoBlob = await burnSubtitles(
 				file,
 				assContent,
-				fontData || undefined,
+				{ family: resolvedFontFamily, data: fontData },
 				proxy((progress: number) => {
 					// Map FFmpeg progress (0-100) to our range (15-95)
 					setExportProgress(15 + Math.round(progress * 0.8));
@@ -84,7 +77,6 @@ export function ExportPanel() {
 		} catch (err) {
 			console.error('=== VIDEO EXPORT FAILED ===');
 			console.error('Export error:', err);
-			console.error('Error stack:', err instanceof Error ? err.stack : 'N/A');
 			alert(`Failed to generate video: ${err instanceof Error ? err.message : 'Unknown error'}`);
 		} finally {
 			setIsBurning(false);

@@ -1,20 +1,60 @@
 @import "tailwindcss";
-@import "@fontsource/montserrat/400.css";
-@import "@fontsource/montserrat/700.css";
-@import "@fontsource/montserrat/900.css";
-@import "@fontsource/poppins/400.css";
-@import "@fontsource/poppins/700.css";
-@import "@fontsource/poppins/900.css";
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/700.css";
-@import "@fontsource/inter/900.css";
-@import "@fontsource/geist-sans/400.css";
-@import "@fontsource/geist-sans/700.css";
-@import "@fontsource/geist-sans/900.css";
-@import "@fontsource/dm-sans/400.css";
-@import "@fontsource/dm-sans/700.css";
-@import "@fontsource/instrument-sans/400.css";
-@import "@fontsource/instrument-sans/700.css";
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/montserrat.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DM Sans';
+  src: url('/fonts/dm-sans.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/poppins-regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/poppins-bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/poppins-black.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: url('/fonts/noto-sans.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
 
 
 /* Theme Variables */
