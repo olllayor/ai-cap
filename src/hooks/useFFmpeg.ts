@@ -2,6 +2,8 @@ import { useState, useRef, useCallback } from 'react';
 import { wrap, type Remote } from 'comlink';
 import type { FFmpegWorkerApi } from '../workers/ffmpeg.worker';
 
+import FFmpegWorker from '../workers/ffmpeg.worker?worker';
+
 export function useFFmpeg() {
 	const [isLoaded, setIsLoaded] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
@@ -31,14 +33,9 @@ export function useFFmpeg() {
 		setLoadError(null);
 
 		try {
-			// Initialize worker with cache busting
-			const workerUrl = new URL('../workers/ffmpeg.worker.ts', import.meta.url);
-			// Append version/timestamp to force reload of the worker file
-			workerUrl.searchParams.append('v', Date.now().toString());
+			// Initialize worker with Vite's explicit worker support
+			const worker = new FFmpegWorker();
 			
-			const worker = new Worker(workerUrl, {
-				type: 'module',
-			});
 			workerInstanceRef.current = worker;
 			workerRef.current = wrap<FFmpegWorkerApi>(worker);
 
