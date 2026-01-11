@@ -7,8 +7,7 @@ import { useStyleStore } from '../../stores/style.store';
 import { useVideoStore } from '../../stores/video.store';
 import { downloadSRT } from '../../lib/srt-generator';
 import { generateASS } from '../../lib/ass-generator';
-
-
+import { getFontData } from '../../lib/font-loader';
 
 export function ExportPanel() {
 	const { transcript } = useCaptionStore();
@@ -54,15 +53,16 @@ export function ExportPanel() {
 			console.log('[Export] Generating ASS content...');
 			setExportProgress(10);
 			const styleForAss = { ...style, fontFamily: resolvedFontFamily };
-			const assContent = generateASS(transcript, styleForAss, dimensions.width, dimensions.height, fontData || undefined);
+			const assContent = generateASS(transcript, styleForAss, dimensions.width, dimensions.height);
 			console.log('[Export] ASS generated, length:', assContent.length);
 
-			// 3. Burn with progress callback (font data is no longer passed)
+			// 3. Burn with progress callback
 			console.log('[Export] Starting subtitle burn...');
 			setExportProgress(15);
 			const videoBlob = await burnSubtitles(
 				file,
 				assContent,
+				{ family: resolvedFontFamily, data: fontData },
 				proxy((progress: number) => {
 					// Map FFmpeg progress (0-100) to our range (15-95)
 					setExportProgress(15 + Math.round(progress * 0.8));

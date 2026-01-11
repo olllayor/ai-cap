@@ -4,6 +4,8 @@ import { toBlobURL } from '@ffmpeg/util';
 
 let ffmpeg: FFmpeg | null = null;
 
+export type SubtitleFont = { family: string; data: Uint8Array | null } | null;
+
 const api = {
 	async load() {
 		if (ffmpeg) return;
@@ -66,6 +68,7 @@ const api = {
 	async burnSubtitles(
 		videoFile: File,
 		assContent: string,
+		font: SubtitleFont,
 		onProgress?: (progress: number) => void,
 	): Promise<Blob> {
 		if (!ffmpeg) throw new Error('FFmpeg not loaded');
@@ -75,67 +78,63 @@ const api = {
 		const inputName = 'input.mp4';
 		const subName = 'subs.ass';
 		const outputName = 'output.mp4';
-		const fontName = 'LiberationSans-Regular.ttf';
-
-		// Base URL assuming the files are in the public folder of the deployment
-		const baseURL = new URL('/', self.location.origin);
-		const fontURL = new URL(fontName, baseURL).href;
+		const fontsDir = '/fonts';
+		const fontFile = `${fontsDir}/caption-font.ttf`;
 
 		try {
 			// 1. Setup virtual file system for fonts
 			console.log('[BurnSubtitles] Setting up virtual font environment...');
+			try {
+				await ffmpeg.createDir(fontsDir);
+			} catch {
+				// ignore
+			}
 
-						const fontData = await fetch(fontURL).then((r) => r.arrayBuffer());
-						console.log(`[BurnSubtitles] Fetched font: ${fontData.byteLength} bytes`);
-			
-						try {
-							await ffmpeg.createDir('/fonts');
-						} catch (e) { /* ignore */ }
-						try {
-							await ffmpeg.createDir('/tmp');
-						} catch (e) { /* ignore */ }
-			
-						await ffmpeg.writeFile(`/${fontName}`, new Uint8Array(fontData));
-						console.log('[BurnSubtitles] Virtual font environment created.');
-			
-						// Debug: List files in root
-						const rootDir = await ffmpeg.listDir('/');
-						console.log('[BurnSubtitles] Root dir contents:', rootDir);
-			
-						// 2. Write input files
-						console.log('[BurnSubtitles] Writing input video and ASS to FFmpeg FS...');
-						await ffmpeg.writeFile(inputName, await fetchFile(videoFile));
-						await ffmpeg.writeFile(subName, assContent);
-						console.log('[BurnSubtitles] Files written successfully');
-			
-						// 3. Setup progress tracking
-						ffmpeg.on('progress', ({ progress }) => {
-							if (onProgress) {
-								onProgress(Math.round(progress * 100));
-							}
-						});
-			
-						// 4. Run FFmpeg
-						const ffmpegArgs = [
-							'-y',
-							'-loglevel',
-							'info',
-							'-i',
-							inputName,
-							// Use the subtitles filter with fontsdir pointing to root.
-							// We force Fontname=Geneva because we replaced the file with Geneva.ttf
-							'-vf',
-							`subtitles=${subName}:fontsdir=/:force_style='Fontname=Geneva'`,
-							'-c:v',
-							'libx264',
-							'-preset',
-							'ultrafast',
-							'-crf',
-							'28',
-							'-c:a',
-							'copy',
-							outputName,
-						];			console.log('[BurnSubtitles] FFmpeg command:', ffmpegArgs.join(' '));
+			let fontBytes = font?.data ?? null;
+			if (!fontBytes) {
+				const fallbackUrl = new URL('/fonts/noto-sans.ttf', self.location.origin).href;
+				const buffer = await fetch(fallbackUrl).then((r) => {
+					if (!r.ok) throw new Error(`Fallback font fetch failed: ${r.status}`);
+					return r.arrayBuffer();
+				});
+				fontBytes = new Uint8Array(buffer);
+			}
+
+			const fontByteLength = fontBytes.byteLength;
+			await ffmpeg.writeFile(fontFile, fontBytes);
+			console.log('[BurnSubtitles] Wrote font file:', fontFile, `(${fontByteLength} bytes)`);
+
+			// 2. Write input files
+			console.log('[BurnSubtitles] Writing input video and ASS to FFmpeg FS...');
+			await ffmpeg.writeFile(inputName, await fetchFile(videoFile));
+			await ffmpeg.writeFile(subName, assContent);
+			console.log('[BurnSubtitles] Files written successfully');
+
+			// 3. Setup progress tracking
+			ffmpeg.on('progress', ({ progress }) => {
+				if (onProgress) onProgress(Math.round(progress * 100));
+			});
+
+			// 4. Run FFmpeg
+			const ffmpegArgs = [
+				'-y',
+				'-loglevel',
+				'info',
+				'-i',
+				inputName,
+				'-vf',
+				`subtitles=${subName}:fontsdir=${fontsDir}`,
+				'-c:v',
+				'libx264',
+				'-preset',
+				'ultrafast',
+				'-crf',
+				'28',
+				'-c:a',
+				'copy',
+				outputName,
+			];
+			console.log('[BurnSubtitles] FFmpeg command:', ffmpegArgs.join(' '));
 			console.log('[BurnSubtitles] Starting FFmpeg execution...');
 
 			await ffmpeg.exec(ffmpegArgs);
@@ -168,12 +167,10 @@ const api = {
 			console.log('[BurnSubtitles] Cleaning up temporary files...');
 			try {
 				await Promise.all([
-					ffmpeg.deleteFile(inputName),
-					ffmpeg.deleteFile(subName),
+					ffmpeg.deleteFile(inputName).catch(() => {}),
+					ffmpeg.deleteFile(subName).catch(() => {}),
 					ffmpeg.deleteFile(outputName).catch(() => {}),
-					// Cleanup font files
-					ffmpeg.deleteFile(`/${fontName}`).catch(() => {}),
-					ffmpeg.deleteFile('/tmp').catch(() => {}),
+					ffmpeg.deleteFile(fontFile).catch(() => {}),
 				]);
 				console.log('[BurnSubtitles] Cleanup complete.');
 			} catch (cleanupError) {

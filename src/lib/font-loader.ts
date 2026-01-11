@@ -37,6 +37,10 @@ const BUNDLED_FONTS: Record<string, BundledFont> = {
 		family: 'Montserrat',
 		variants: [{ minWeight: 0, url: assetUrl('/fonts/montserrat.ttf') }],
 	},
+	'noto sans': {
+		family: FALLBACK_FONT.family,
+		variants: [{ minWeight: 0, url: FALLBACK_FONT.url }],
+	},
 	'poppins': {
 		family: 'Poppins',
 		variants: [

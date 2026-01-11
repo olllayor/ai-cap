@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Type, Palette, Zap, Sparkles } from 'lucide-react';
 import { useStyleStore, type AnimationType, type CaptionStyle } from '../../stores/style.store';
 
@@ -70,20 +70,14 @@ const stylePresets: { name: string; icon: typeof Sparkles; style: Partial<Captio
 	},
 ];
 
+const SUPPORTED_FONTS = ['Inter', 'Montserrat', 'Poppins', 'DM Sans', 'Noto Sans'] as const;
+type SupportedFont = (typeof SUPPORTED_FONTS)[number];
+
 export function StylePanel() {
 	const { style, updateStyle, setStyle } = useStyleStore();
 	const [activeSection, setActiveSection] = useState<'presets' | 'custom'>('presets');
 
-	const fonts = [
-		'DM Sans',
-		'Instrument Sans',
-		'Google Sans Flex',
-		'Geist Sans',
-		'Montserrat',
-		'Poppins',
-		'Inter',
-		'sans-serif',
-	];
+	const fonts = [...SUPPORTED_FONTS];
 	const animations: { id: AnimationType; label: string }[] = [
 		{ id: 'none', label: 'Static' },
 		{ id: 'pop', label: 'Pop' },
@@ -95,6 +89,13 @@ export function StylePanel() {
 	const applyPreset = (preset: (typeof stylePresets)[0]) => {
 		setStyle({ ...style, ...preset.style });
 	};
+
+	// If a user has an old saved style using a removed font family, normalize it.
+	useEffect(() => {
+		if (!SUPPORTED_FONTS.includes(style.fontFamily as SupportedFont)) {
+			updateStyle({ fontFamily: 'Inter' });
+		}
+	}, [style.fontFamily, updateStyle]);
 
 	return (
 		<div className="flex flex-col h-full bg-[var(--color-bg-secondary)] rounded-xl border border-[var(--color-border)] overflow-hidden">

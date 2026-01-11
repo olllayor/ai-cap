@@ -62,14 +62,14 @@ export function useFFmpeg() {
 	const burnSubtitles = async (
 		file: File,
 		assContent: string,
+		font?: { family: string; data: Uint8Array | null } | null,
 		onProgress?: (progress: number) => void,
 	): Promise<Blob> => {
 		await ensureLoaded();
 		if (!workerRef.current) {
 			throw new Error('FFmpeg not loaded');
 		}
-		// The worker now fetches the font and config internally.
-		return await workerRef.current.burnSubtitles(file, assContent, onProgress);
+		return await workerRef.current.burnSubtitles(file, assContent, font ?? null, onProgress);
 	};
 
 	return { isLoaded, isLoading, loadError, extractAudio, burnSubtitles };
