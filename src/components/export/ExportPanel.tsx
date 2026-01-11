@@ -34,6 +34,8 @@ export function ExportPanel() {
 		try {
 			console.log('=== VIDEO EXPORT STARTED ===');
 			setExportProgress(5);
+			const { data: fontData, family: resolvedFontFamily } = await getFontData(style.fontFamily, style.fontWeight);
+			console.log('[Export] Font data result:', fontData ? `${fontData.byteLength} bytes` : 'null', 'Resolved family:', resolvedFontFamily);
 
 			// 1. Get Video Dimensions
 			console.log('[Export] Detecting video dimensions...');
@@ -51,7 +53,8 @@ export function ExportPanel() {
 			// 2. Generate ASS (font data is no longer needed here)
 			console.log('[Export] Generating ASS content...');
 			setExportProgress(10);
-			const assContent = generateASS(transcript, style, dimensions.width, dimensions.height);
+			const styleForAss = { ...style, fontFamily: resolvedFontFamily };
+			const assContent = generateASS(transcript, styleForAss, dimensions.width, dimensions.height, fontData || undefined);
 			console.log('[Export] ASS generated, length:', assContent.length);
 
 			// 3. Burn with progress callback (font data is no longer passed)
