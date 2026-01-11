@@ -4,7 +4,7 @@ import { toBlobURL } from '@ffmpeg/util';
 
 let ffmpeg: FFmpeg | null = null;
 
-export type SubtitleFont = { family: string; data: Uint8Array | null } | null;
+console.log('[FFmpeg Worker] Initializing... v2 (Font Fix + Cache Bust)');
 
 const api = {
 	async load() {
@@ -68,44 +68,58 @@ const api = {
 	async burnSubtitles(
 		videoFile: File,
 		assContent: string,
-		font: SubtitleFont,
+		fontData?: Uint8Array,
+		fontFamily?: string,
 		onProgress?: (progress: number) => void,
 	): Promise<Blob> {
 		if (!ffmpeg) throw new Error('FFmpeg not loaded');
 
 		console.log('[BurnSubtitles] Starting subtitle burn process...');
+		console.log('[BurnSubtitles] Video file size:', videoFile.size, 'bytes');
+		console.log('[BurnSubtitles] Font data received:', !!fontData, fontData ? `${fontData.byteLength} bytes` : 'null');
+		console.log('[BurnSubtitles] Font family:', fontFamily);
+		console.log('[BurnSubtitles] ASS content length:', assContent.length, 'characters');
+		console.log('[BurnSubtitles] ASS content first 800 chars:', assContent.substring(0, 800));
 
 		const inputName = 'input.mp4';
 		const subName = 'subs.ass';
 		const outputName = 'output.mp4';
 		const fontsDir = '/fonts';
-		const fontFile = `${fontsDir}/caption-font.ttf`;
 
 		try {
-			// 1. Setup virtual file system for fonts
-			console.log('[BurnSubtitles] Setting up virtual font environment...');
-			try {
-				await ffmpeg.createDir(fontsDir);
-			} catch {
-				// ignore
-			}
+			// 1. Prepare Font Files
+			// libass in FFmpeg.wasm will scan fontsdir and load fonts by their internal name
+			// We just need to ensure the TTF is in the directory
+			if (fontData) {
+				console.log('[BurnSubtitles] Setting up virtual font environment...');
+				try {
+					await ffmpeg.createDir(fontsDir);
+				} catch (e) {
+					// Ignore if directory already exists
+				}
 
-			let fontBytes = font?.data ?? null;
-			if (!fontBytes) {
-				const fallbackUrl = new URL('/fonts/noto-sans.ttf', self.location.origin).href;
-				const buffer = await fetch(fallbackUrl).then((r) => {
-					if (!r.ok) throw new Error(`Fallback font fetch failed: ${r.status}`);
-					return r.arrayBuffer();
-				});
-				fontBytes = new Uint8Array(buffer);
-			}
+				// 1a. Write minimal fonts.conf to help libass initialize fontconfig
+				const fontConfig = `<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <dir>${fontsDir}</dir>
+  <cachedir>/tmp/fontconfig</cachedir>
+  <config></config>
+</fontconfig>`;
+				await ffmpeg.writeFile(`${fontsDir}/fonts.conf`, fontConfig);
 
-			const fontByteLength = fontBytes.byteLength;
-			await ffmpeg.writeFile(fontFile, fontBytes);
-			console.log('[BurnSubtitles] Wrote font file:', fontFile, `(${fontByteLength} bytes)`);
+				// 1b. Write the font file using its proper family name
+				// This increases the chance of libass matching the font request in the ASS file
+				const safeName = fontFamily ? fontFamily.replace(/['"]/g, '').trim() : 'CustomFont';
+				const fontFileName = `${fontsDir}/${safeName}.ttf`;
+				
+				await ffmpeg.writeFile(fontFileName, fontData);
+				console.log(`[BurnSubtitles] Wrote font file: ${fontFileName} (${fontData.byteLength} bytes)`);
+				console.log(`[BurnSubtitles] Wrote fonts.conf to ${fontsDir}`);
+			}
 
 			// 2. Write input files
-			console.log('[BurnSubtitles] Writing input video and ASS to FFmpeg FS...');
+			console.log('[BurnSubtitles] Writing input video to FFmpeg FS...');
 			await ffmpeg.writeFile(inputName, await fetchFile(videoFile));
 			await ffmpeg.writeFile(subName, assContent);
 			console.log('[BurnSubtitles] Files written successfully');
@@ -115,7 +129,24 @@ const api = {
 				if (onProgress) onProgress(Math.round(progress * 100));
 			});
 
-			// 4. Run FFmpeg
+			// 3. Build FFmpeg command
+			// The subtitles filter with fontsdir tells libass where to look for fonts.
+			// Without proper fontconfig, libass may fail to match fonts by name, so we:
+			// 1. Name our font file using the font family name (e.g., "DM Sans.ttf")
+			// 2. Use force_style as a fallback to ensure text renders even if font matching fails
+			//
+			// force_style overrides ASS style properties. If font matching fails, at least
+			// the subtitles will render with libass's default font.
+			let vfFilter = `subtitles=${subName}:fontsdir=${fontsDir}`;
+			
+			// Add force_style to ensure font size is reasonable if fallback is used
+			// We keep the original font request but ensure visibility
+			if (fontFamily) {
+				// Escape single quotes in font family name
+				const safeFontFamily = fontFamily.replace(/'/g, "\\'");
+				vfFilter = `subtitles=${subName}:fontsdir=${fontsDir}:force_style='FontName=${safeFontFamily}'`;
+			}
+			
 			const ffmpegArgs = [
 				'-y',
 				'-loglevel',
@@ -123,7 +154,7 @@ const api = {
 				'-i',
 				inputName,
 				'-vf',
-				`subtitles=${subName}:fontsdir=${fontsDir}`,
+				vfFilter,
 				'-c:v',
 				'libx264',
 				'-preset',
@@ -137,7 +168,13 @@ const api = {
 			console.log('[BurnSubtitles] FFmpeg command:', ffmpegArgs.join(' '));
 			console.log('[BurnSubtitles] Starting FFmpeg execution...');
 
-			await ffmpeg.exec(ffmpegArgs);
+			try {
+				await ffmpeg.exec(ffmpegArgs);
+				console.log('[BurnSubtitles] FFmpeg execution completed successfully');
+			} catch (execError) {
+				console.error('[BurnSubtitles] FFmpeg exec failed:', execError);
+				throw execError;
+			}
 
 			console.log('[BurnSubtitles] FFmpeg execution completed successfully');
 

@@ -49,6 +49,18 @@ const BUNDLED_FONTS: Record<string, BundledFont> = {
 			{ minWeight: 0, url: assetUrl('/fonts/poppins-regular.ttf') },
 		],
 	},
+	'instrument sans': {
+		family: 'Instrument Sans',
+		variants: [{ minWeight: 0, url: assetUrl('/fonts/instrument-sans.ttf') }],
+	},
+	'google sans flex': {
+		family: 'Google Sans Flex',
+		variants: [{ minWeight: 0, url: assetUrl('/fonts/google-sans-flex.ttf') }],
+	},
+	'geist sans': {
+		family: 'Geist Sans',
+		variants: [{ minWeight: 0, url: assetUrl('/fonts/geist-sans.ttf') }],
+	},
 	'sans-serif': {
 		family: FALLBACK_FONT.family,
 		variants: [{ minWeight: 0, url: FALLBACK_FONT.url }],
@@ -94,6 +106,7 @@ function isLikelyFontBinary(data: Uint8Array): boolean {
 }
 
 export async function getFontData(family: string, weight?: number): Promise<FontFetchResult> {
+	console.log(`[FontLoader] getFontData called for family: "${family}", weight: ${weight}`);
 	try {
 		const safeFamily = family.replace(/['"]/g, '').toLowerCase();
 		let fontUrl: string | null = null;
@@ -172,7 +185,9 @@ export async function getFontData(family: string, weight?: number): Promise<Font
 			}
 			const buffer = await response.arrayBuffer();
 			const data = new Uint8Array(buffer);
+			
 			// Guard against dev-server 404 HTML or other non-font responses (common with guessed .ttf URLs)
+			// Also guard against WOFF/WOFF2 which libass cannot read
 			if (!isLikelyFontBinary(data) || data.byteLength < 10_000) {
 				throw new Error(`Invalid font binary (${data.byteLength} bytes) from ${url}`);
 			}
@@ -181,10 +196,15 @@ export async function getFontData(family: string, weight?: number): Promise<Font
 
 		try {
 			const data = await fetchFontBinary(fontUrl);
+			// Double check if we accidentally got a WOFF/WOFF2 that slipped through generic checks (unlikely but safe)
+			// isLikelyFontBinary already rejects generic WOFF signatures
 			return { data, family: resolvedFamily };
 		} catch (fetchError) {
-			console.error(`[FontLoader] Fetch error for ${fontUrl}:`, fetchError);
+			console.warn(`[FontLoader] Primary font failed (${fontUrl}):`, fetchError);
+			
+			// Force fallback to Noto Sans
 			if (fontUrl !== FALLBACK_FONT.url) {
+				console.log(`[FontLoader] Attempting fallback to ${FALLBACK_FONT.family}...`);
 				try {
 					const data = await fetchFontBinary(FALLBACK_FONT.url);
 					return { data, family: FALLBACK_FONT.family };
@@ -196,6 +216,7 @@ export async function getFontData(family: string, weight?: number): Promise<Font
 		}
 	} catch (error) {
 		console.error(`[FontLoader] Error extracting font data for ${family}:`, error);
+		// Last ditch effort: try to return fallback details even if the main logic crashed
 		return { data: null, family };
 	}
 }
