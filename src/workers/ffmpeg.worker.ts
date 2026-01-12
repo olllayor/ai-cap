@@ -7,219 +7,223 @@ let ffmpeg: FFmpeg | null = null;
 console.log('[FFmpeg Worker] Initializing... v2 (Font Fix + Cache Bust)');
 
 const api = {
-	async load() {
-		if (ffmpeg) return;
+  async load() {
+    if (ffmpeg) return;
 
-		ffmpeg = new FFmpeg();
+    ffmpeg = new FFmpeg();
 
-		ffmpeg.on('log', ({ message, type }) => {
-			if (type === 'fferr') {
-				console.error('[FFmpeg Error]', message);
-			} else {
-				console.log('[FFmpeg Log]', message);
-			}
-		});
+    ffmpeg.on('log', ({ message, type }) => {
+      if (type === 'fferr') {
+        console.error('[FFmpeg Error]', message);
+      } else {
+        console.log('[FFmpeg Log]', message);
+      }
+    });
 
-		const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
 
-		// We load the core and wasm from a CDN to avoid bundling issues for now
-		await ffmpeg.load({
-			coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-			wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-		});
-	},
+    // We load the core and wasm from a CDN to avoid bundling issues for now
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+    });
+  },
 
-	async extractAudio(file: File): Promise<Float32Array> {
-		if (!ffmpeg) throw new Error('FFmpeg not loaded');
+  async extractAudio(file: File): Promise<Float32Array> {
+    if (!ffmpeg) throw new Error('FFmpeg not loaded');
 
-		const inputName = 'input.mp4';
-		const outputName = 'output.raw';
+    const inputName = 'input.mp4';
+    const outputName = 'output.raw';
 
-		await ffmpeg.writeFile(inputName, await fetchFile(file));
+    await ffmpeg.writeFile(inputName, await fetchFile(file));
 
-		// Run extraction: 16kHz, Mono, Raw Float32 (f32le)
-		await ffmpeg.exec([
-			'-i',
-			inputName,
-			'-vn',
-			'-c:a',
-			'pcm_f32le',
-			'-ar',
-			'16000',
-			'-ac',
-			'1',
-			'-f',
-			'f32le',
-			outputName,
-		]);
+    // Run extraction: 16kHz, Mono, Raw Float32 (f32le)
+    await ffmpeg.exec([
+      '-i',
+      inputName,
+      '-vn',
+      '-c:a',
+      'pcm_f32le',
+      '-ar',
+      '16000',
+      '-ac',
+      '1',
+      '-f',
+      'f32le',
+      outputName,
+    ]);
 
-		const data = await ffmpeg.readFile(outputName);
+    const data = await ffmpeg.readFile(outputName);
 
-		await ffmpeg.deleteFile(inputName);
-		await ffmpeg.deleteFile(outputName);
+    await ffmpeg.deleteFile(inputName);
+    await ffmpeg.deleteFile(outputName);
 
-		if (typeof data === 'string') {
-			throw new Error('FFmpeg returned string data unexpectedly');
-		}
+    if (typeof data === 'string') {
+      throw new Error('FFmpeg returned string data unexpectedly');
+    }
 
-		return new Float32Array(data.buffer);
-	},
+    return new Float32Array(data.buffer);
+  },
 
-	async burnSubtitles(
-		videoFile: File,
-		assContent: string,
-		fontData?: Uint8Array,
-		fontFamily?: string,
-		onProgress?: (progress: number) => void,
-	): Promise<Blob> {
-		if (!ffmpeg) throw new Error('FFmpeg not loaded');
+  async burnSubtitles(
+    videoFile: File,
+    assContent: string,
+    fontData?: Uint8Array,
+    fontFamily?: string,
+    onProgress?: (progress: number) => void,
+  ): Promise<Blob> {
+    if (!ffmpeg) throw new Error('FFmpeg not loaded');
 
-		console.log('[BurnSubtitles] Starting subtitle burn process...');
-		console.log('[BurnSubtitles] Video file size:', videoFile.size, 'bytes');
-		console.log('[BurnSubtitles] Font data received:', !!fontData, fontData ? `${fontData.byteLength} bytes` : 'null');
-		console.log('[BurnSubtitles] Font family:', fontFamily);
-		console.log('[BurnSubtitles] ASS content length:', assContent.length, 'characters');
-		console.log('[BurnSubtitles] ASS content first 800 chars:', assContent.substring(0, 800));
+    console.log('[BurnSubtitles] Starting subtitle burn process...');
+    console.log('[BurnSubtitles] Video file size:', videoFile.size, 'bytes');
+    console.log('[BurnSubtitles] Font data received:', !!fontData, fontData ? `${fontData.byteLength} bytes` : 'null');
+    console.log('[BurnSubtitles] Font family:', fontFamily);
+    console.log('[BurnSubtitles] ASS content length:', assContent.length, 'characters');
+    console.log('[BurnSubtitles] ASS content first 800 chars:', assContent.substring(0, 800));
 
-		const inputName = 'input.mp4';
-		const subName = 'subs.ass';
-		const outputName = 'output.mp4';
-		const fontsDir = '/fonts';
+    const inputName = 'input.mp4';
+    const subName = 'subs.ass';
+    const outputName = 'output.mp4';
+    const fontsDir = '/fonts';
+    let fontFileName: string | null = null;
 
-		try {
-			// 1. Prepare Font Files
-			// libass in FFmpeg.wasm will scan fontsdir and load fonts by their internal name
-			// We just need to ensure the TTF is in the directory
-			if (fontData) {
-				console.log('[BurnSubtitles] Setting up virtual font environment...');
-				try {
-					await ffmpeg.createDir(fontsDir);
-				} catch (e) {
-					// Ignore if directory already exists
-				}
+    try {
+      // 1. Prepare Font Files
+      // libass in FFmpeg.wasm will scan fontsdir and load fonts by their internal name
+      // We just need to ensure the TTF is in the directory
+      if (fontData) {
+        console.log('[BurnSubtitles] Setting up virtual font environment...');
+        try {
+          await ffmpeg.createDir(fontsDir);
+        } catch {
+          // Ignore if directory already exists
+        }
 
-				// 1a. Write minimal fonts.conf to help libass initialize fontconfig
-				const fontConfig = `<?xml version="1.0"?>
+        // 1a. Write minimal fonts.conf to help libass initialize fontconfig
+        const fontConfig = `<?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
 <fontconfig>
   <dir>${fontsDir}</dir>
   <cachedir>/tmp/fontconfig</cachedir>
   <config></config>
 </fontconfig>`;
-				await ffmpeg.writeFile(`${fontsDir}/fonts.conf`, fontConfig);
+        await ffmpeg.writeFile(`${fontsDir}/fonts.conf`, fontConfig);
 
-				// 1b. Write the font file using its proper family name
-				// This increases the chance of libass matching the font request in the ASS file
-				const safeName = fontFamily ? fontFamily.replace(/['"]/g, '').trim() : 'CustomFont';
-				const fontFileName = `${fontsDir}/${safeName}.ttf`;
-				
-				await ffmpeg.writeFile(fontFileName, fontData);
-				console.log(`[BurnSubtitles] Wrote font file: ${fontFileName} (${fontData.byteLength} bytes)`);
-				console.log(`[BurnSubtitles] Wrote fonts.conf to ${fontsDir}`);
-			}
+        // 1b. Write the font file using its proper family name
+        // This increases the chance of libass matching the font request in the ASS file
+        const safeName = fontFamily ? fontFamily.replace(/['"]/g, '').trim() : 'CustomFont';
+        fontFileName = `${fontsDir}/${safeName}.ttf`;
 
-			// 2. Write input files
-			console.log('[BurnSubtitles] Writing input video to FFmpeg FS...');
-			await ffmpeg.writeFile(inputName, await fetchFile(videoFile));
-			await ffmpeg.writeFile(subName, assContent);
-			console.log('[BurnSubtitles] Files written successfully');
+        await ffmpeg.writeFile(fontFileName, fontData);
+        console.log(`[BurnSubtitles] Wrote font file: ${fontFileName} (${fontData.byteLength} bytes)`);
+        console.log(`[BurnSubtitles] Wrote fonts.conf to ${fontsDir}`);
+      }
 
-			// 3. Setup progress tracking
-			ffmpeg.on('progress', ({ progress }) => {
-				if (onProgress) onProgress(Math.round(progress * 100));
-			});
+      // 2. Write input files
+      console.log('[BurnSubtitles] Writing input video to FFmpeg FS...');
+      await ffmpeg.writeFile(inputName, await fetchFile(videoFile));
+      await ffmpeg.writeFile(subName, assContent);
+      console.log('[BurnSubtitles] Files written successfully');
 
-			// 3. Build FFmpeg command
-			// The subtitles filter with fontsdir tells libass where to look for fonts.
-			// Without proper fontconfig, libass may fail to match fonts by name, so we:
-			// 1. Name our font file using the font family name (e.g., "DM Sans.ttf")
-			// 2. Use force_style as a fallback to ensure text renders even if font matching fails
-			//
-			// force_style overrides ASS style properties. If font matching fails, at least
-			// the subtitles will render with libass's default font.
-			let vfFilter = `subtitles=${subName}:fontsdir=${fontsDir}`;
-			
-			// Add force_style to ensure font size is reasonable if fallback is used
-			// We keep the original font request but ensure visibility
-			if (fontFamily) {
-				// Escape single quotes in font family name
-				const safeFontFamily = fontFamily.replace(/'/g, "\\'");
-				vfFilter = `subtitles=${subName}:fontsdir=${fontsDir}:force_style='FontName=${safeFontFamily}'`;
-			}
-			
-			const ffmpegArgs = [
-				'-y',
-				'-loglevel',
-				'info',
-				'-i',
-				inputName,
-				'-vf',
-				vfFilter,
-				'-c:v',
-				'libx264',
-				'-preset',
-				'ultrafast',
-				'-crf',
-				'28',
-				'-c:a',
-				'copy',
-				outputName,
-			];
-			console.log('[BurnSubtitles] FFmpeg command:', ffmpegArgs.join(' '));
-			console.log('[BurnSubtitles] Starting FFmpeg execution...');
+      // 3. Setup progress tracking
+      ffmpeg.on('progress', ({ progress }) => {
+        if (onProgress) onProgress(Math.round(progress * 100));
+      });
 
-			try {
-				await ffmpeg.exec(ffmpegArgs);
-				console.log('[BurnSubtitles] FFmpeg execution completed successfully');
-			} catch (execError) {
-				console.error('[BurnSubtitles] FFmpeg exec failed:', execError);
-				throw execError;
-			}
+      // 3. Build FFmpeg command
+      // The subtitles filter with fontsdir tells libass where to look for fonts.
+      // Without proper fontconfig, libass may fail to match fonts by name, so we:
+      // 1. Name our font file using the font family name (e.g., "DM Sans.ttf")
+      // 2. Use force_style as a fallback to ensure text renders even if font matching fails
+      //
+      // force_style overrides ASS style properties. If font matching fails, at least
+      // the subtitles will render with libass's default font.
+      let vfFilter = `subtitles=${subName}:fontsdir=${fontsDir}`;
 
-			console.log('[BurnSubtitles] FFmpeg execution completed successfully');
+      // Add force_style to ensure font size is reasonable if fallback is used
+      // We keep the original font request but ensure visibility
+      if (fontFamily) {
+        // Escape single quotes in font family name
+        const safeFontFamily = fontFamily.replace(/'/g, "\\'");
+        vfFilter = `subtitles=${subName}:fontsdir=${fontsDir}:force_style='FontName=${safeFontFamily}'`;
+      }
 
-			// 5. Read and return output
-			console.log('[BurnSubtitles] Reading output file...');
-			const data = await ffmpeg.readFile(outputName);
+      const ffmpegArgs = [
+        '-y',
+        '-loglevel',
+        'info',
+        '-i',
+        inputName,
+        '-vf',
+        vfFilter,
+        '-c:v',
+        'libx264',
+        '-preset',
+        'ultrafast',
+        '-crf',
+        '28',
+        '-c:a',
+        'copy',
+        outputName,
+      ];
+      console.log('[BurnSubtitles] FFmpeg command:', ffmpegArgs.join(' '));
+      console.log('[BurnSubtitles] Starting FFmpeg execution...');
 
-			if (!(data instanceof Uint8Array)) {
-				throw new Error('FFmpeg output is not Uint8Array');
-			}
+      try {
+        await ffmpeg.exec(ffmpegArgs);
+        console.log('[BurnSubtitles] FFmpeg execution completed successfully');
+      } catch (execError) {
+        console.error('[BurnSubtitles] FFmpeg exec failed:', execError);
+        throw execError;
+      }
 
-			if (data.byteLength === 0) {
-				console.error('[BurnSubtitles] FFmpeg produced empty output file (0 bytes)');
-				throw new Error('FFmpeg produced empty output file');
-			}
+      console.log('[BurnSubtitles] FFmpeg execution completed successfully');
 
-			console.log('[BurnSubtitles] Output file size:', data.byteLength, 'bytes');
+      // 5. Read and return output
+      console.log('[BurnSubtitles] Reading output file...');
+      const data = await ffmpeg.readFile(outputName);
 
-			const blob = new Blob([data.slice().buffer], { type: 'video/mp4' });
-			console.log('[BurnSubtitles] Success! Output blob created.');
-			return blob;
-		} catch (error) {
-			console.error('[BurnSubtitles] ERROR occurred:', error);
-			throw new Error(`Video export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		} finally {
-			// Cleanup
-			console.log('[BurnSubtitles] Cleaning up temporary files...');
-			try {
-				await Promise.all([
-					ffmpeg.deleteFile(inputName).catch(() => {}),
-					ffmpeg.deleteFile(subName).catch(() => {}),
-					ffmpeg.deleteFile(outputName).catch(() => {}),
-					ffmpeg.deleteFile(fontFile).catch(() => {}),
-				]);
-				console.log('[BurnSubtitles] Cleanup complete.');
-			} catch (cleanupError) {
-				console.warn('[BurnSubtitles] Cleanup failed for some files:', cleanupError);
-			}
-		}
-	},
+      if (!(data instanceof Uint8Array)) {
+        throw new Error('FFmpeg output is not Uint8Array');
+      }
+
+      if (data.byteLength === 0) {
+        console.error('[BurnSubtitles] FFmpeg produced empty output file (0 bytes)');
+        throw new Error('FFmpeg produced empty output file');
+      }
+
+      console.log('[BurnSubtitles] Output file size:', data.byteLength, 'bytes');
+
+      const blob = new Blob([data.slice().buffer], { type: 'video/mp4' });
+      console.log('[BurnSubtitles] Success! Output blob created.');
+      return blob;
+    } catch (error) {
+      console.error('[BurnSubtitles] ERROR occurred:', error);
+      throw new Error(`Video export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      // Cleanup
+      console.log('[BurnSubtitles] Cleaning up temporary files...');
+      try {
+        const filesToDelete = [
+          ffmpeg.deleteFile(inputName).catch(() => {}),
+          ffmpeg.deleteFile(subName).catch(() => {}),
+          ffmpeg.deleteFile(outputName).catch(() => {}),
+        ];
+        if (fontFileName) {
+          filesToDelete.push(ffmpeg.deleteFile(fontFileName).catch(() => {}));
+        }
+        await Promise.all(filesToDelete);
+        console.log('[BurnSubtitles] Cleanup complete.');
+      } catch (cleanupError) {
+        console.warn('[BurnSubtitles] Cleanup failed for some files:', cleanupError);
+      }
+    }
+  },
 };
 
 // Helper to convert File to Uint8Array
 async function fetchFile(file: File): Promise<Uint8Array> {
-	return new Uint8Array(await file.arrayBuffer());
+  return new Uint8Array(await file.arrayBuffer());
 }
 
 expose(api);
