@@ -15,7 +15,6 @@ import { VideoPreview } from './components/preview/VideoPreview';
 import { TabNavigation } from './components/layout/TabNavigation';
 import { ModelSelector } from './components/upload/ModelSelector';
 import { LanguageSelector } from './components/upload/LanguageSelector';
-import { Analytics } from './components/Analytics';
 import { trackEvent } from './lib/analytics';
 
 type Tab = 'edit' | 'style' | 'export';
@@ -25,7 +24,7 @@ function App() {
 	const { file, setFile, reset, currentTime, setIsPlaying } = useVideoStore();
 	const { extractAudio, isLoading: ffmpegLoading } = useFFmpeg();
 	const { transcribe, modelLoading } = useTranscriber();
-	const { status, setStatus } = useCaptionStore();
+	const { status, setStatus, selectedModel, selectedLanguage } = useCaptionStore();
 
 	const [activeTab, setActiveTab] = useState<Tab>('edit');
 
@@ -92,7 +91,6 @@ function App() {
 
 	return (
 		<div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] font-sans antialiased selection:bg-[var(--color-accent-primary)] selection:text-white">
-			<Analytics />
 			<Header />
 
 			<main className="py-8">

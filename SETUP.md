@@ -102,25 +102,32 @@ bun run dev
 
 ## 5. Analytics (Optional)
 
-This project uses [Umami](https://umami.is/) for lightweight, privacy-focused analytics.
+This project uses [Umami](https://umami.is/) for lightweight, privacy-focused analytics. The tracking script is injected at build time using environment variables.
 
-1.  **Get a Website ID**:
-    - Sign up at [Umami Cloud](https://cloud.umami.is/) or self-host your own instance.
-    - Create a new website and copy the **Website ID**.
+### 5.1 Get a Website ID
 
-2.  **Configure Environment Variables**:
-    - Add the following to your `.env` file:
-    ```env
-    VITE_UMAMI_WEBSITE_ID=your-umami-website-id
-    VITE_UMAMI_SCRIPT_URL=https://cloud.umami.is/script.js # Optional, defaults to Umami Cloud
-    ```
+1.  Sign up at [Umami Cloud](https://cloud.umami.is/) or self-host your own instance.
+2.  Create a new website and copy the **Website ID**.
 
-3.  **Tracked Events**:
-    - `video_selected`: Fired when a user selects a video.
-    - `transcription_started`: Fired when transcription begins.
-    - `transcription_success`: Fired when transcription completes.
-    - `export_started`: Fired when an export (SRT or Video) is initiated.
-    - `export_success`: Fired when an export finishes successfully.
+### 5.2 Configure Environment Variables
+
+Add the following to your `.env` file:
+
+```env
+VITE_UMAMI_WEBSITE_ID=your-umami-website-id
+```
+
+The script will be automatically injected into `index.html` at build time. If no `VITE_UMAMI_WEBSITE_ID` is provided, analytics will be disabled.
+
+### 5.3 Tracked Events
+
+- `video_selected`: When user selects a video
+- `transcription_started`: When transcription begins
+- `transcription_success`: When transcription completes
+- `transcription_error`: When transcription fails
+- `export_started`: When export is initiated
+- `export_success`: When export completes
+- `export_error`: When export fails
 
 The app will be available at `http://localhost:5173`
 
