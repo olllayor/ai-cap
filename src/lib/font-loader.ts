@@ -29,10 +29,7 @@ const BUNDLED_FONTS: Record<string, BundledFont> = {
 		family: 'Inter',
 		variants: [{ minWeight: 0, url: assetUrl('/fonts/inter.ttf') }],
 	},
-	'dm sans': {
-		family: 'DM Sans',
-		variants: [{ minWeight: 0, url: assetUrl('/fonts/dm-sans.ttf') }],
-	},
+
 	'montserrat': {
 		family: 'Montserrat',
 		variants: [{ minWeight: 0, url: assetUrl('/fonts/montserrat.ttf') }],

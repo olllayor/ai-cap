@@ -81,11 +81,11 @@ const api = {
     console.log('[BurnSubtitles] ASS content length:', assContent.length, 'characters');
     console.log('[BurnSubtitles] ASS content first 800 chars:', assContent.substring(0, 800));
 
-    const inputName = 'input.mp4';
-    const subName = 'subs.ass';
-    const outputName = 'output.mp4';
-    const fontsDir = '/fonts';
-    let fontFileName: string | null = null;
+		const inputName = 'input.mp4';
+		const subName = 'subs.ass';
+		const outputName = 'output.mp4';
+		const fontsDir = '/fonts';
+		let fontFileName: string | undefined;
 
     try {
       // 1. Prepare Font Files
@@ -109,15 +109,15 @@ const api = {
 </fontconfig>`;
         await ffmpeg.writeFile(`${fontsDir}/fonts.conf`, fontConfig);
 
-        // 1b. Write the font file using its proper family name
-        // This increases the chance of libass matching the font request in the ASS file
-        const safeName = fontFamily ? fontFamily.replace(/['"]/g, '').trim() : 'CustomFont';
-        fontFileName = `${fontsDir}/${safeName}.ttf`;
-
-        await ffmpeg.writeFile(fontFileName, fontData);
-        console.log(`[BurnSubtitles] Wrote font file: ${fontFileName} (${fontData.byteLength} bytes)`);
-        console.log(`[BurnSubtitles] Wrote fonts.conf to ${fontsDir}`);
-      }
+				// 1b. Write the font file using its proper family name
+				// This increases the chance of libass matching the font request in the ASS file
+				const safeName = fontFamily ? fontFamily.replace(/['"]/g, '').trim() : 'CustomFont';
+				fontFileName = `${fontsDir}/${safeName}.ttf`;
+				
+				await ffmpeg.writeFile(fontFileName, fontData);
+				console.log(`[BurnSubtitles] Wrote font file: ${fontFileName} (${fontData.byteLength} bytes)`);
+				console.log(`[BurnSubtitles] Wrote fonts.conf to ${fontsDir}`);
+			}
 
       // 2. Write input files
       console.log('[BurnSubtitles] Writing input video to FFmpeg FS...');
@@ -194,31 +194,28 @@ const api = {
 
       console.log('[BurnSubtitles] Output file size:', data.byteLength, 'bytes');
 
-      const blob = new Blob([data.slice().buffer], { type: 'video/mp4' });
-      console.log('[BurnSubtitles] Success! Output blob created.');
-      return blob;
-    } catch (error) {
-      console.error('[BurnSubtitles] ERROR occurred:', error);
-      throw new Error(`Video export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      // Cleanup
-      console.log('[BurnSubtitles] Cleaning up temporary files...');
-      try {
-        const filesToDelete = [
-          ffmpeg.deleteFile(inputName).catch(() => {}),
-          ffmpeg.deleteFile(subName).catch(() => {}),
-          ffmpeg.deleteFile(outputName).catch(() => {}),
-        ];
-        if (fontFileName) {
-          filesToDelete.push(ffmpeg.deleteFile(fontFileName).catch(() => {}));
-        }
-        await Promise.all(filesToDelete);
-        console.log('[BurnSubtitles] Cleanup complete.');
-      } catch (cleanupError) {
-        console.warn('[BurnSubtitles] Cleanup failed for some files:', cleanupError);
-      }
-    }
-  },
+			const blob = new Blob([data.slice().buffer], { type: 'video/mp4' });
+			console.log('[BurnSubtitles] Success! Output blob created.');
+			return blob;
+		} catch (error) {
+			console.error('[BurnSubtitles] ERROR occurred:', error);
+			throw new Error(`Video export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		} finally {
+			// Cleanup
+			console.log('[BurnSubtitles] Cleaning up temporary files...');
+			try {
+				await Promise.all([
+					ffmpeg.deleteFile(inputName).catch(() => {}),
+					ffmpeg.deleteFile(subName).catch(() => {}),
+					ffmpeg.deleteFile(outputName).catch(() => {}),
+					fontFileName ? ffmpeg.deleteFile(fontFileName).catch(() => {}) : Promise.resolve(),
+				]);
+				console.log('[BurnSubtitles] Cleanup complete.');
+			} catch (cleanupError) {
+				console.warn('[BurnSubtitles] Cleanup failed for some files:', cleanupError);
+			}
+		}
+	},
 };
 
 // Helper to convert File to Uint8Array

@@ -8,7 +8,7 @@ interface VideoPreviewProps {
 
 export function VideoPreview({ className = '' }: VideoPreviewProps) {
 	const videoRef = useRef<HTMLVideoElement>(null);
-	const { videoUrl, setIsPlaying, setDuration, setCurrentTime, currentTime } = useVideoStore();
+	const { videoUrl, setIsPlaying, setDuration, setCurrentTime, currentTime, setDimensions } = useVideoStore();
 
 	useEffect(() => {
 		if (videoRef.current && Math.abs(videoRef.current.currentTime - currentTime) > 0.5) {
@@ -97,7 +97,10 @@ export function VideoPreview({ className = '' }: VideoPreviewProps) {
 				playsInline
 				className="w-full h-full object-contain"
 				onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-				onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+				onLoadedMetadata={(e) => {
+					setDuration(e.currentTarget.duration);
+					setDimensions(e.currentTarget.videoWidth, e.currentTarget.videoHeight);
+				}}
 				onPlay={() => setIsPlaying(true)}
 				onPause={() => setIsPlaying(false)}
 			/>

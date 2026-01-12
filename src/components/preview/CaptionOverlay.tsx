@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { useCaptionStore, type Word } from '../../stores/caption.store';
 import { useStyleStore } from '../../stores/style.store';
+import { useVideoStore } from '../../stores/video.store';
 import { groupWordsIntoSegments } from '../../lib/caption-utils';
 
 interface CaptionOverlayProps {
@@ -30,6 +31,35 @@ function findActiveSegment(segments: any[], time: number) {
 export function CaptionOverlay({ currentTime }: CaptionOverlayProps) {
 	const { transcript } = useCaptionStore();
 	const { style } = useStyleStore();
+	const { dimensions } = useVideoStore();
+	const containerRef = useRef<HTMLDivElement>(null);
+	const [scale, setScale] = useState(1);
+
+	// Observe container size to calculate scale factor relative to the actual video dimensions
+	useEffect(() => {
+		if (!containerRef.current) return;
+
+		const updateScale = () => {
+			if (!containerRef.current) return;
+			const { width } = containerRef.current.getBoundingClientRect();
+			
+			// If we know the video dimensions, scale based on the ratio of container width to video width
+			// This ensures WYSIWYG: 50px font on 1080p video looks correct when that video is shrunk to 300px width.
+			if (dimensions && dimensions.width > 0) {
+				setScale(width / dimensions.width);
+			} else {
+				setScale(1);
+			}
+		};
+
+		// Initial calculation
+		updateScale();
+
+		const observer = new ResizeObserver(updateScale);
+		observer.observe(containerRef.current);
+
+		return () => observer.disconnect();
+	}, [dimensions]);
 
 	const segments = useMemo(() => {
 		return groupWordsIntoSegments(transcript);
@@ -45,22 +75,22 @@ export function CaptionOverlay({ currentTime }: CaptionOverlayProps) {
 		() => ({
 			bottom: `${style.yOffset}%`,
 			fontFamily: style.fontFamily,
-			fontSize: `${style.fontSize}px`,
+			fontSize: `${Math.max(1, style.fontSize * scale)}px`,
 			fontWeight: style.fontWeight,
 			textTransform: style.uppercase ? 'uppercase' : 'none',
 			width: `${style.maxWidth}%`,
 			left: `${(100 - style.maxWidth) / 2}%`,
 		}),
-		[style.yOffset, style.fontFamily, style.fontSize, style.fontWeight, style.uppercase, style.maxWidth],
+		[style.yOffset, style.fontFamily, style.fontSize, style.fontWeight, style.uppercase, style.maxWidth, scale],
 	);
 
 	const baseWordStyle = useMemo<React.CSSProperties>(
 		() => ({
 			color: style.textColor,
-			WebkitTextStroke: `${style.outlineWidth}px ${style.outlineColor}`,
-			textShadow: `0px 2px ${style.shadowBlur}px ${style.shadowColor}`,
+			WebkitTextStroke: `${style.outlineWidth * scale}px ${style.outlineColor}`,
+			textShadow: `0px ${2 * scale}px ${style.shadowBlur * scale}px ${style.shadowColor}`,
 		}),
-		[style.textColor, style.outlineWidth, style.outlineColor, style.shadowBlur, style.shadowColor],
+		[style.textColor, style.outlineWidth, style.outlineColor, style.shadowBlur, style.shadowColor, scale],
 	);
 
 	if (!activeSegment) return null;
@@ -78,6 +108,7 @@ export function CaptionOverlay({ currentTime }: CaptionOverlayProps) {
 
 	return (
 		<div
+			ref={containerRef}
 			className="absolute z-20 pointer-events-none text-center leading-tight transition-all duration-75 ease-out select-none"
 			style={containerStyle}
 		>
