@@ -32,10 +32,10 @@ function App() {
 		if (!file) return;
 
 		try {
-			trackEvent('transcription_started', { 
-				model: selectedModel, 
+			trackEvent('transcription_started', {
+				model: selectedModel,
 				language: selectedLanguage,
-				video_size: file.size 
+				video_size: file.size,
 			});
 			setStatus('extracting_audio');
 			// 1. Extract Audio
@@ -108,7 +108,6 @@ function App() {
 						</div>
 					) : (
 						<div className="animate-slide-up">
-
 							{/* Top Bar */}
 							<div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
 								<div className="flex items-center gap-4">
@@ -119,9 +118,9 @@ function App() {
 								</div>
 
 								<div className="flex items-center gap-3">
-                  <LanguageSelector />
-                  <ModelSelector />
-                  
+									<LanguageSelector />
+									<ModelSelector />
+
 									<button
 										onClick={handleGenerateCaptions}
 										disabled={isProcessing || status === 'completed'}
