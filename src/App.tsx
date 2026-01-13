@@ -15,6 +15,7 @@ import { VideoPreview } from './components/preview/VideoPreview';
 import { TabNavigation } from './components/layout/TabNavigation';
 import { ModelSelector } from './components/upload/ModelSelector';
 import { LanguageSelector } from './components/upload/LanguageSelector';
+import { trackEvent } from './lib/analytics';
 
 type Tab = 'edit' | 'style' | 'export';
 
@@ -23,7 +24,7 @@ function App() {
 	const { file, setFile, reset, currentTime, setIsPlaying } = useVideoStore();
 	const { extractAudio, isLoading: ffmpegLoading } = useFFmpeg();
 	const { transcribe, modelLoading } = useTranscriber();
-	const { status, setStatus } = useCaptionStore();
+	const { status, setStatus, selectedModel, selectedLanguage } = useCaptionStore();
 
 	const [activeTab, setActiveTab] = useState<Tab>('edit');
 
@@ -31,6 +32,11 @@ function App() {
 		if (!file) return;
 
 		try {
+			trackEvent('transcription_started', {
+				model: selectedModel,
+				language: selectedLanguage,
+				video_size: file.size,
+			});
 			setStatus('extracting_audio');
 			// 1. Extract Audio
 			const audioBlob = await extractAudio(file);
@@ -38,10 +44,12 @@ function App() {
 			// 2. Transcribe
 			await transcribe(audioBlob);
 
+			trackEvent('transcription_success');
 			// Auto-play video after transcript is done
 			setIsPlaying(true);
 		} catch (error) {
 			console.error('Pipeline failed:', error);
+			trackEvent('transcription_error', { error: error instanceof Error ? error.message : 'Unknown error' });
 			setStatus('error');
 		}
 	};
@@ -100,7 +108,6 @@ function App() {
 						</div>
 					) : (
 						<div className="animate-slide-up">
-
 							{/* Top Bar */}
 							<div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
 								<div className="flex items-center gap-4">
@@ -111,9 +118,9 @@ function App() {
 								</div>
 
 								<div className="flex items-center gap-3">
-                  <LanguageSelector />
-                  <ModelSelector />
-                  
+									<LanguageSelector />
+									<ModelSelector />
+
 									<button
 										onClick={handleGenerateCaptions}
 										disabled={isProcessing || status === 'completed'}

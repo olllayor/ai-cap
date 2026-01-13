@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Upload, AlertCircle } from 'lucide-react';
+import { trackEvent } from '../../lib/analytics';
 
 interface UploadZoneProps {
 	onFileSelect: (file: File) => void;
@@ -45,6 +46,11 @@ export function UploadZone({ onFileSelect, maxSizeMB = 100 }: UploadZoneProps) {
 
 			const file = e.dataTransfer.files[0];
 			if (file && validateFile(file)) {
+				trackEvent('video_selected', { 
+					size: file.size, 
+					type: file.type,
+					method: 'drag_and_drop'
+				});
 				onFileSelect(file);
 			}
 		},
@@ -55,6 +61,11 @@ export function UploadZone({ onFileSelect, maxSizeMB = 100 }: UploadZoneProps) {
 		(e: React.ChangeEvent<HTMLInputElement>) => {
 			const file = e.target.files?.[0];
 			if (file && validateFile(file)) {
+				trackEvent('video_selected', { 
+					size: file.size, 
+					type: file.type,
+					method: 'file_input'
+				});
 				onFileSelect(file);
 			}
 		},

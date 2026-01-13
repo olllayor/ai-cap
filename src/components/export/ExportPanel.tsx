@@ -8,6 +8,7 @@ import { useVideoStore } from '../../stores/video.store';
 import { downloadSRT } from '../../lib/srt-generator';
 import { generateASS } from '../../lib/ass-generator';
 import { getFontData } from '../../lib/font-loader';
+import { trackEvent } from '../../lib/analytics';
 
 export function ExportPanel() {
 	const { transcript } = useCaptionStore();
@@ -20,12 +21,15 @@ export function ExportPanel() {
 	const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
 	const handleSRTDownload = () => {
+		trackEvent('export_started', { format: 'srt' });
 		downloadSRT(transcript, `captions-${Date.now()}.srt`);
+		trackEvent('export_success', { format: 'srt' });
 	};
 
 	const handleVideoExport = async () => {
 		if (!file) return;
 
+		trackEvent('export_started', { format: 'video_burn' });
 		setIsBurning(true);
 		setDownloadUrl(null);
 		setExportProgress(0);
@@ -80,10 +84,12 @@ export function ExportPanel() {
 			setExportProgress(100);
 			const url = URL.createObjectURL(videoBlob);
 			setDownloadUrl(url);
+			trackEvent('export_success', { format: 'video_burn', size: videoBlob.size });
 			console.log('=== VIDEO EXPORT SUCCESS ===');
 		} catch (err) {
 			console.error('=== VIDEO EXPORT FAILED ===');
 			console.error('Export error:', err);
+			trackEvent('export_error', { format: 'video_burn', error: err instanceof Error ? err.message : 'Unknown error' });
 			alert(`Failed to generate video: ${err instanceof Error ? err.message : 'Unknown error'}`);
 		} finally {
 			setIsBurning(false);
