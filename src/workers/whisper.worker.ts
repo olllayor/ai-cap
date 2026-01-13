@@ -6,6 +6,7 @@ env.allowLocalModels = false;
 
 // Singleton pipeline instance
 let transcriber: Pipeline | null = null;
+let activeModelName: string | null = null;
 
 const api = {
 	async load(modelName: string = 'Xenova/whisper-tiny.en') {
@@ -20,6 +21,7 @@ const api = {
 		// Load pipeline with simple call to avoid complex type inference
 		// @ts-expect-error - quantized option is valid but types are complex
 		transcriber = await pipeline('automatic-speech-recognition', modelName);
+        activeModelName = modelName;
 
 		console.log('Whisper model loaded');
 	},
@@ -41,7 +43,9 @@ const api = {
 			},
 		};
 
-        if (language && language !== 'auto') {
+        // Only set language/task if the model supports it (not English-only)
+        const isEnglishOnly = activeModelName?.endsWith('.en');
+        if (language && language !== 'auto' && !isEnglishOnly) {
             options.language = language;
             options.task = 'transcribe'; // Force transcribe task when language is set
         }
