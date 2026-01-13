@@ -77,7 +77,8 @@ See [SETUP.md](./SETUP.md) for detailed setup instructions including:
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to get started.
+
 
 ## 📄 License
 

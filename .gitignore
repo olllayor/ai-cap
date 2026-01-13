@@ -7,25 +7,41 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production / Build
+dist/
+dist-ssr/
 *.local
-.cursor
+
+# Environment
 .env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-
-# Editor directories and files
+# Editor / IDE
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+.cursor/
 
+# Tooling
+.wrangler/
+.agent/
+.kluster/
 package-lock.json
-.env
-.kluster
+yarn.lock
+pnpm-lock.yaml
+
