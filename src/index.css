@@ -53,33 +53,33 @@
 
 /* Theme Variables */
 @theme {
-  /* Background colors */
-  --color-bg-primary: #0a0a0b;
-  --color-bg-secondary: #141416;
-  --color-bg-tertiary: #1c1c1f;
-  --color-bg-elevated: #252528;
+  /* Background colors - Light earthy palette */
+  --color-bg-primary: #FFFBF4;
+  --color-bg-secondary: #F5F0E8;
+  --color-bg-tertiary: #EDE8DE;
+  --color-bg-elevated: #FFFFFF;
 
-  /* Accent colors */
-  --color-accent-primary: #6366f1;
-  --color-accent-secondary: #8b5cf6;
-  --color-accent-hover: #818cf8;
+  /* Accent colors - Olive Drab based */
+  --color-accent-primary: #565449;
+  --color-accent-secondary: #6B6A5D;
+  --color-accent-hover: #45443A;
 
   /* Text colors */
-  --color-text-primary: #fafafa;
-  --color-text-secondary: #a1a1aa;
-  --color-text-muted: #71717a;
+  --color-text-primary: #2D2C28;
+  --color-text-secondary: #565449;
+  --color-text-muted: #8A8A7A;
 
   /* Status colors */
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
+  --color-success: #5A7247;
+  --color-warning: #B8860B;
+  --color-error: #9B4343;
 
-  /* Borders */
-  --color-border: #27272a;
-  --color-border-hover: #3f3f46;
+  /* Borders - Bone tones */
+  --color-border: #D8CFBC;
+  --color-border-hover: #C4B9A4;
 
   /* Shadows */
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+  --shadow-glow: 0 0 20px rgba(86, 84, 73, 0.2);
 
   /* Font families */
   --font-sans: 'Inter', system-ui, sans-serif;
@@ -93,7 +93,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -204,9 +204,43 @@ body {
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
-/* Glass effect */
+/* Float animation for landing page */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-20px) scale(1.05);
+  }
+}
+
+@keyframes float-delayed {
+
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-15px) scale(1.02);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 8s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+/* Glass effect - Light theme */
 .glass {
-  background: rgba(20, 20, 22, 0.8);
+  background: rgba(255, 251, 244, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--color-border);
@@ -234,4 +268,9 @@ body {
   border-radius: 13px;
   background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
   z-index: -1;
+}
+
+/* Hover button glow */
+.hover\:shadow-glow:hover {
+  box-shadow: var(--shadow-glow);
 }

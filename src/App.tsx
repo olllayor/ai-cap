@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Header } from './components/layout/Header';
 import { Container } from './components/layout/Container';
 import { useCompatibility } from './hooks/useCompatibility';
 import { AlertTriangle, Loader2, Sparkles } from 'lucide-react';
 import { UploadZone } from './components/upload/UploadZone';
+import { LandingPage } from './components/landing/LandingPage';
 import { useVideoStore } from './stores/video.store';
 import { useFFmpeg } from './hooks/useFFmpeg';
 import { useTranscriber } from './hooks/useTranscription';
@@ -27,6 +28,8 @@ function App() {
 	const { status, setStatus, selectedModel, selectedLanguage } = useCaptionStore();
 
 	const [activeTab, setActiveTab] = useState<Tab>('edit');
+	const [showLanding, setShowLanding] = useState(true);
+	const uploadRef = useRef<HTMLDivElement>(null);
 
 	const handleGenerateCaptions = async () => {
 		if (!file) return;
@@ -91,23 +94,49 @@ function App() {
 
 	return (
 		<div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] font-sans antialiased selection:bg-[var(--color-accent-primary)] selection:text-white">
-			<Header />
-
-			<main className="py-8">
-				<Container>
-					{!file ? (
-						<div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-8 text-center sm:p-12 animate-fade-in">
-							<h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
-								Add <span className="gradient-text">Captions</span> to Your Videos
-							</h2>
-							<p className="mx-auto mb-8 max-w-2xl text-lg text-[var(--color-text-secondary)]">
-								Transform your shorts with AI-powered subtitles. 100% client-side, privacy-focused, and free forever.
-							</p>
-
-							<UploadZone onFileSelect={setFile} />
-						</div>
+			{!file ? (
+				<>
+					{showLanding ? (
+						<LandingPage
+							onGetStarted={() => {
+								setShowLanding(false);
+								setTimeout(() => {
+									uploadRef.current?.scrollIntoView({ behavior: 'smooth' });
+								}, 100);
+							}}
+						/>
 					) : (
-						<div className="animate-slide-up">
+						<>
+							<Header />
+							<main className="py-8">
+								<Container>
+									<div ref={uploadRef} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-8 text-center sm:p-12 animate-fade-in">
+										<button
+											onClick={() => setShowLanding(true)}
+											className="mb-6 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+										>
+											← Back to Home
+										</button>
+										<h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
+											Add <span className="gradient-text">Captions</span> to Your Videos
+										</h2>
+										<p className="mx-auto mb-8 max-w-2xl text-lg text-[var(--color-text-secondary)]">
+											Transform your shorts with AI-powered subtitles. 100% client-side, privacy-focused, and free forever.
+										</p>
+
+										<UploadZone onFileSelect={setFile} />
+									</div>
+								</Container>
+							</main>
+						</>
+					)}
+				</>
+			) : (
+				<>
+					<Header />
+					<main className="py-8">
+						<Container>
+							<div className="animate-slide-up">
 							{/* Top Bar */}
 							<div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
 								<div className="flex items-center gap-4">
@@ -190,10 +219,11 @@ function App() {
 								</div>
 							)}
 						</div>
-					)}
-				</Container>
-			</main>
-		</div>
+					</Container>
+				</main>
+			</>
+		)}
+	</div>
 	);
 }
 
