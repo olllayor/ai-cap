@@ -12,6 +12,7 @@ function umamiPlugin() {
 				return html.replace('data-website-id="__UMAMI_ID__"', `data-website-id="${umamiId}"`);
 			}
 			// If no ID provided, remove the script tag entirely
+			console.warn('⚠️  [Umami] VITE_UMAMI_WEBSITE_ID is not set. Analytics script will be removed.');
 			return html.replace(/<script defer src="https:\/\/cloud\.umami\.is\/script\.js"[^>]*><\/script>\n\s+/, '');
 		},
 	};
