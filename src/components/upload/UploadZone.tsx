@@ -19,7 +19,7 @@ export function UploadZone({ onFileSelect, maxSizeMB = 100 }: UploadZoneProps) {
 		}
 
 		// Check size
-		const maxSizeBytes = maxSizeMB * 1024 * 1024;
+		const maxSizeBytes = maxSizeMB * 1024 * 1024 * 2;
 		if (file.size > maxSizeBytes) {
 			setError(`File is too large. Maximum size is ${maxSizeMB}MB.`);
 			return false;
@@ -46,10 +46,10 @@ export function UploadZone({ onFileSelect, maxSizeMB = 100 }: UploadZoneProps) {
 
 			const file = e.dataTransfer.files[0];
 			if (file && validateFile(file)) {
-				trackEvent('video_selected', { 
-					size: file.size, 
+				trackEvent('video_selected', {
+					size: file.size,
 					type: file.type,
-					method: 'drag_and_drop'
+					method: 'drag_and_drop',
 				});
 				onFileSelect(file);
 			}
@@ -61,10 +61,10 @@ export function UploadZone({ onFileSelect, maxSizeMB = 100 }: UploadZoneProps) {
 		(e: React.ChangeEvent<HTMLInputElement>) => {
 			const file = e.target.files?.[0];
 			if (file && validateFile(file)) {
-				trackEvent('video_selected', { 
-					size: file.size, 
+				trackEvent('video_selected', {
+					size: file.size,
 					type: file.type,
-					method: 'file_input'
+					method: 'file_input',
 				});
 				onFileSelect(file);
 			}
