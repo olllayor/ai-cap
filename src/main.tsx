@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.tsx';
 import { AuthProvider } from './components/auth';
+import { initUmami } from './lib/analytics';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -11,3 +12,6 @@ createRoot(document.getElementById('root')!).render(
     </AuthProvider>
   </StrictMode>,
 );
+
+// Initialize Umami analytics after the app renders
+initUmami();
