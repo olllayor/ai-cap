@@ -1,18 +1,11 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: 'Inter';
-  src: url('/fonts/inter.ttf') format('truetype');
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-}
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 
 @font-face {
-  font-family: 'Montserrat';
-  src: url('/fonts/montserrat.ttf') format('truetype');
-  font-style: normal;
-  font-weight: 100 900;
+  font-family: 'ClashDisplay';
+  src: url('https://api.fontshare.com/v2/css?f[]=clash-display@400,600,700&display=swap');
   font-display: swap;
 }
 
@@ -82,8 +75,8 @@
   --shadow-glow: 0 0 20px rgba(86, 84, 73, 0.2);
 
   /* Font families */
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-display: 'Montserrat', system-ui, sans-serif;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-caption: 'Poppins', system-ui, sans-serif;
 }
 
@@ -238,13 +231,101 @@ body {
   animation-delay: 1s;
 }
 
-/* Glass effect - Light theme */
-.glass {
-  background: rgba(255, 251, 244, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--color-border);
+/* Glass effect - Premium */
+.glass-premium {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.07),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
+
+/* Browser Chrome */
+.browser-window {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
+  background: var(--color-bg-elevated);
+}
+
+.browser-header {
+  height: 40px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.browser-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.browser-address {
+  flex: 1;
+  height: 24px;
+  margin: 0 40px;
+  border-radius: 6px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* Floating Animation for UI Elements */
+@keyframes floating-soft {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+.animate-floating-soft {
+  animation: floating-soft 5s ease-in-out infinite;
+}
+
+/* Caption Preview Styles */
+.caption-preview {
+  position: absolute;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Radial Glow for Preview Area */
+.preview-glow {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--color-accent-primary) 0%, transparent 70%);
+  opacity: 0.15;
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
 
 /* Gradient text */
 .gradient-text {
@@ -273,4 +354,102 @@ body {
 /* Hover button glow */
 .hover\:shadow-glow:hover {
   box-shadow: var(--shadow-glow);
+}
+
+/* Noise texture overlay for atmospheric effect */
+.noise-texture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Mesh gradient background */
+.mesh-gradient {
+  background:
+    radial-gradient(at 40% 20%, rgba(86, 84, 73, 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(107, 106, 93, 0.08) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(86, 84, 73, 0.05) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, rgba(107, 106, 93, 0.05) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(86, 84, 73, 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, rgba(107, 106, 93, 0.08) 0px, transparent 50%);
+}
+
+/* Diagonal accent line */
+.diagonal-accent {
+  position: relative;
+  overflow: hidden;
+}
+
+.diagonal-accent::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 200%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent-primary), transparent);
+  transform: rotate(-15deg);
+  opacity: 0.1;
+}
+
+/* Staggered fade-in for list items */
+@keyframes stagger-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-item {
+  animation: stagger-fade-in 0.6s ease-out both;
+}
+
+/* Enhanced gradient with multiple stops */
+.gradient-text-enhanced {
+  background: linear-gradient(135deg,
+      var(--color-accent-primary) 0%,
+      var(--color-accent-secondary) 50%,
+      var(--color-accent-primary) 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 8s ease infinite;
+}
+
+@keyframes gradient-shift {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Sophisticated card hover */
+.card-hover {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-8px) scale(1.02);
+}
+
+/* Decorative dot pattern */
+.dot-pattern {
+  background-image: radial-gradient(circle, var(--color-border) 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.3;
 }
