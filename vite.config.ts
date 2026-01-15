@@ -33,7 +33,7 @@ function umamiPlugin() {
 			}
 
 			if (umamiId) {
-				console.log('✅ [Umami] VITE_UMAMI_WEBSITE_ID is set. Script will be loaded dynamically.');
+				// console.log('✅ [Umami] VITE_UMAMI_WEBSITE_ID is set. Script will be loaded dynamically.');
 				// Remove the script tag since we'll load it dynamically
 				return html.replace(/<!-- Umami Analytics[^>]*-->\s*<script defer src="https:\/\/cloud\.umami\.is\/script\.js"[^>]*><\/script>\n\s+/, '');
 			}
