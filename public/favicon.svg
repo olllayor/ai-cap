@@ -1,0 +1,9 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="128" fill="#FFFBF4"/>
+  <rect x="100" y="120" width="312" height="240" rx="32" stroke="#565449" stroke-width="32"/>
+  <path d="M160 200H352" stroke="#565449" stroke-width="24" stroke-linecap="round"/>
+  <path d="M160 280H280" stroke="#565449" stroke-width="24" stroke-linecap="round"/>
+  <path d="M230 400L256 440L282 400H230Z" fill="#565449"/>
+  <!-- Sparkle -->
+  <path d="M400 120L415 80L430 120L470 135L430 150L415 190L400 150L360 135L400 120Z" fill="#B8860B"/>
+</svg>
