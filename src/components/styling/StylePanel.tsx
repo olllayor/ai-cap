@@ -107,20 +107,20 @@ export function StylePanel() {
 				<div className="flex gap-1 px-4">
 					<button
 						onClick={() => setActiveSection('presets')}
-						className={`flex-1 px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+						className={`flex-1 px-4 py-2 text-sm font-medium rounded-t-lg transition-all ${
 							activeSection === 'presets'
-								? 'bg-[var(--color-bg-tertiary)] text-white border-b-2 border-[var(--color-accent-primary)]'
-								: 'text-[var(--color-text-muted)] hover:text-white'
+								? 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] border-b-2 border-[var(--color-accent-primary)] font-semibold'
+								: 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)]/50'
 						}`}
 					>
 						Presets
 					</button>
 					<button
 						onClick={() => setActiveSection('custom')}
-						className={`flex-1 px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+						className={`flex-1 px-4 py-2 text-sm font-medium rounded-t-lg transition-all ${
 							activeSection === 'custom'
-								? 'bg-[var(--color-bg-tertiary)] text-white border-b-2 border-[var(--color-accent-primary)]'
-								: 'text-[var(--color-text-muted)] hover:text-white'
+								? 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] border-b-2 border-[var(--color-accent-primary)] font-semibold'
+								: 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)]/50'
 						}`}
 					>
 						Customize
@@ -142,13 +142,13 @@ export function StylePanel() {
 									<button
 										key={preset.name}
 										onClick={() => applyPreset(preset)}
-										className="group relative flex items-center gap-3 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] hover:border-[var(--color-accent-primary)] hover:bg-[var(--color-bg-elevated)] transition-all text-left"
+										className="group relative flex items-center gap-3 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] hover:border-[var(--color-accent-primary)] hover:shadow-md transition-all text-left"
 									>
-										<div className="p-2 rounded-lg bg-[var(--color-accent-primary)]/10 group-hover:bg-[var(--color-accent-primary)]/20 transition-colors">
+										<div className="p-2.5 rounded-lg bg-[var(--color-bg-secondary)] group-hover:bg-[var(--color-accent-primary)]/10 transition-colors">
 											<Icon className="h-5 w-5 text-[var(--color-accent-primary)]" />
 										</div>
 										<div className="flex-1">
-											<div className="font-semibold text-white mb-0.5">{preset.name}</div>
+											<div className="font-semibold text-[var(--color-text-primary)] mb-0.5">{preset.name}</div>
 											<div className="text-xs text-[var(--color-text-muted)]">
 												{preset.style.fontFamily} • {preset.style.fontSize}px • {preset.style.animation}
 											</div>

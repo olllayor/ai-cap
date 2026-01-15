@@ -29,8 +29,8 @@ export function TabNavigation({ activeTab, onTabChange, className = '' }: TabNav
               relative flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all
               ${
 								activeTab === tab.id
-									? 'bg-gradient-to-r from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] text-white shadow-lg'
-									: 'text-[var(--color-text-muted)] hover:text-white hover:bg-[var(--color-bg-tertiary)]'
+									? 'bg-gradient-to-r from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] text-white shadow-md'
+									: 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)]'
 							}
             `}
 					>
