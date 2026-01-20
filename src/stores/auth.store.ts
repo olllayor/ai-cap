@@ -2,17 +2,22 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 
+export type AuthProvider = 'google' | 'github' | 'apple';
+
 interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
   initialized: boolean;
+  signInWithProvider: (provider: AuthProvider) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithGithub: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   session: null,
   loading: true,
@@ -44,11 +49,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  signInWithGoogle: async () => {
+  signInWithProvider: async (provider: AuthProvider) => {
     try {
       set({ loading: true });
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider,
         options: {
           redirectTo: `${window.location.origin}`,
         },
@@ -56,10 +61,22 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error signing in with Google:', error);
+      console.error('Error signing in with provider:', error);
       set({ loading: false });
       throw error;
     }
+  },
+
+  signInWithGoogle: async () => {
+    await get().signInWithProvider('google');
+  },
+
+  signInWithGithub: async () => {
+    await get().signInWithProvider('github');
+  },
+
+  signInWithApple: async () => {
+    await get().signInWithProvider('apple');
   },
 
   signOut: async () => {
