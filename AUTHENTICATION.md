@@ -6,6 +6,14 @@ This document provides a quick reference for the Supabase authentication integra
 
 AI-Cap uses **Supabase Authentication** with **Google OAuth** as the social login provider. All authentication happens securely through Supabase's hosted authentication service.
 
+## Supported Providers
+
+AI-Cap currently supports the following OAuth providers:
+
+- **Google** (implemented in the UI today)
+
+Provider settings are configured in the **Supabase Dashboard** under **Authentication → Providers**. If you enable additional providers in Supabase, you will also need to update the UI/auth flow to expose them in the app.
+
 ## Architecture
 
 ### Components

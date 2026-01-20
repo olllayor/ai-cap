@@ -90,6 +90,46 @@ The database schema has already been set up with the following:
    - For development: `http://localhost:5173`
    - For production: Your actual domain
 
+### 3.4 Additional OAuth Providers (GitHub, Apple)
+
+Supabase supports other OAuth providers. If you want to offer GitHub or Apple sign-in, you must create provider credentials and configure the corresponding provider in Supabase.
+
+#### Required Redirect URL
+
+For both GitHub and Apple, use the Supabase callback URL:
+
+```
+https://<your-project-ref>.supabase.co/auth/v1/callback
+```
+
+> Replace `<your-project-ref>` with your Supabase project ID (from the Project URL).
+
+#### GitHub
+
+1. In GitHub, go to **Settings → Developer settings → OAuth Apps**.
+2. Create a new OAuth App:
+   - **Homepage URL**: `http://localhost:5173` (or your production URL)
+   - **Authorization callback URL**: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+3. Copy the **Client ID** and **Client Secret**.
+4. In Supabase Dashboard, go to **Authentication → Providers → GitHub**.
+5. Enable GitHub and paste the credentials.
+
+#### Apple
+
+1. In Apple Developer, create a **Services ID** for Sign in with Apple.
+2. Configure the **Return URL** as `https://<your-project-ref>.supabase.co/auth/v1/callback`.
+3. Create a **Private Key** and note your **Team ID** and **Key ID**.
+4. In Supabase Dashboard, go to **Authentication → Providers → Apple**.
+5. Enable Apple and supply the Services ID, Team ID, Key ID, and private key.
+
+#### Supabase URL Configuration
+
+Make sure your application URL is registered in Supabase:
+
+1. Go to **Authentication → URL Configuration**.
+2. Set **Site URL** to your app URL (e.g., `http://localhost:5173` for development).
+3. Add your app URLs to **Redirect URLs**.
+
 ## 4. Running the Application
 
 ### Development Mode

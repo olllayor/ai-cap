@@ -129,6 +129,34 @@ https://your-production-domain.com/**
 
 3. Click **"Save"**
 
+## Additional OAuth Providers (GitHub, Apple)
+
+If you want to support more providers alongside Google, configure them in Supabase and register the Supabase callback URL in each provider's dashboard.
+
+### Required Redirect URL (All Providers)
+
+```
+https://<your-project-ref>.supabase.co/auth/v1/callback
+```
+
+### GitHub
+
+1. In GitHub, go to **Settings → Developer settings → OAuth Apps**.
+2. Create a new OAuth App:
+   - **Homepage URL**: `http://localhost:5173` (or your production URL)
+   - **Authorization callback URL**: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+3. Copy the **Client ID** and **Client Secret**.
+4. In Supabase Dashboard, go to **Authentication → Providers → GitHub** and enable it.
+5. Paste the credentials and save.
+
+### Apple
+
+1. In Apple Developer, create a **Services ID** for Sign in with Apple.
+2. Set the **Return URL** to `https://<your-project-ref>.supabase.co/auth/v1/callback`.
+3. Create a **Private Key** and note your **Team ID** and **Key ID**.
+4. In Supabase Dashboard, go to **Authentication → Providers → Apple**.
+5. Enable Apple and provide the Services ID, Team ID, Key ID, and private key.
+
 ## Step 7: Test the Setup
 
 1. Start your development server:
